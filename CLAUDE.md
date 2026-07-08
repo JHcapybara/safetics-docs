@@ -13,7 +13,7 @@ safetics-docs/
 ├─ tools/                (허브 공용 도구 — 필요 시)
 ├─ .github/workflows/    Pages 자동 배포
 ├─ admin/                TBM 관리자 매뉴얼  ↔ 코드 레포: tbmadmin (JHcapybara/tbmadmin)
-├─ app/                  TBM 앱 매뉴얼 (준비 중)  ↔ 코드 레포: (별도 앱 레포)
+├─ app/                  TBM 앱 매뉴얼  ↔ 코드 레포: safeticsTBM (JHcapybara/safeticsTBM)
 └─ sfd/                  SFD 매뉴얼 (준비 중)  ↔ 코드 레포: (SFD 레포)
 ```
 
@@ -25,7 +25,7 @@ safetics-docs/
 | 매뉴얼 | 소스 위치 | 비교 대상 코드 레포(로컬) |
 |---|---|---|
 | admin | `admin/` | `c:\Users\jhcho\Desktop\TBM` (origin: JHcapybara/tbmadmin) |
-| app | `app/` | (앱 레포 — 준비되면 기입) |
+| app | `app/` | `c:\Users\jhcho\Desktop\TBM_App` (origin: JHcapybara/safeticsTBM) |
 | sfd | `sfd/` | (SFD 레포 — 준비되면 기입) |
 
 자동 업데이트(`/manual-update`)는 **매뉴얼 ↔ 해당 코드 레포**를 비교한다. 코드 레포가

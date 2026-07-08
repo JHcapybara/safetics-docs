@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TBM 앱 사용 설명서</title>
+<style>
+  :root {
+    --brand: #1f5eff;
+    --brand-dark: #16409e;
+    --ink: #1f2733;
+    --ink-soft: #5a6472;
+    --line: #e3e8ef;
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --warn-bg: #fff7e6;
+    --warn-line: #ffd591;
+    --tip-bg: #e6f4ff;
+    --tip-line: #91caff;
+    --danger-bg: #fff1f0;
+    --danger-line: #ffa39e;
+    --sidebar-w: 300px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body {
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg); line-height: 1.7; font-size: 15px;
+  }
+
+  /* ---------- 상단 바 ---------- */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 30;
+    background: var(--brand-dark); color: #fff; display: flex; align-items: center;
+    padding: 0 20px; gap: 12px;
+  }
+  .topbar .logo { font-weight: 800; font-size: 17px; letter-spacing: -0.3px; }
+  .topbar .sub { font-size: 13px; opacity: .75; }
+  .topbar .spacer { flex: 1; }
+  .topbar button {
+    background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3);
+    border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  .topbar button:hover { background: rgba(255,255,255,.25); }
+  #menuToggle { display: none; }
+
+  /* ---------- 사이드바 ---------- */
+  .sidebar {
+    position: fixed; top: 56px; left: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--card); border-right: 1px solid var(--line);
+    overflow-y: auto; padding: 0 0 40px; z-index: 20;
+  }
+  .search-wrap {
+    padding: 16px 16px 12px; position: sticky; top: 0; z-index: 2;
+    background: rgba(255, 255, 255, .55);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+  #searchBox {
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 8px;
+    font-size: 13px; outline: none; background: rgba(255,255,255,.9);
+  }
+  #searchBox::placeholder { font-size: 12px; color: #9aa4b2; }
+  #searchBox:focus { border-color: var(--brand); }
+  .nav-group { margin-top: 10px; }
+  .nav-group > .gtitle {
+    padding: 6px 16px; font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .nav-item {
+    display: block; padding: 7px 16px 7px 24px; color: var(--ink); text-decoration: none;
+    font-size: 14px; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: #f0f4fa; }
+  .nav-item.active { border-left-color: var(--brand); background: #eef4ff; color: var(--brand-dark); font-weight: 600; }
+  .nav-item.hidden, .nav-group.hidden { display: none; }
+  .no-result { display: none; padding: 16px; color: var(--ink-soft); font-size: 13px; }
+
+  /* ---------- 본문 ---------- */
+  .main { margin-left: var(--sidebar-w); padding: 80px 40px 120px; max-width: 1000px; }
+  .doc-head h1 { font-size: 30px; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .doc-head p { color: var(--ink-soft); }
+  .doc-head .meta { font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+
+  section.chapter { margin-top: 56px; }
+  section.chapter > h2 {
+    font-size: 24px; padding-bottom: 10px; border-bottom: 3px solid var(--brand);
+    letter-spacing: -0.4px;
+  }
+  section.chapter > .chapter-desc { color: var(--ink-soft); margin-top: 8px; }
+
+  article.topic {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 32px; margin-top: 24px;
+  }
+  article.topic h3 { font-size: 19px; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  article.topic .purpose { color: var(--ink-soft); margin-top: 6px; font-size: 14.5px; }
+  article.topic h4 { margin-top: 20px; font-size: 15.5px; }
+
+  .badge {
+    display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 9px;
+    border-radius: 999px; vertical-align: middle; white-space: nowrap;
+  }
+  .badge.admin { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+  .badge.manager { background: #e6f4ff; color: #0958d9; border: 1px solid #91caff; }
+  .badge.all { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+  .badge.menu { background: #f0f2f5; color: #444; border: 1px solid #d9d9d9; font-weight: 600; }
+  .badge.temp { background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; }
+
+  ol.steps { margin: 14px 0 0 0; padding-left: 0; counter-reset: step; list-style: none; }
+  ol.steps > li {
+    position: relative; padding: 8px 0 8px 44px; counter-increment: step;
+  }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 8px;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff;
+    font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps b, .callout b { color: var(--brand-dark); }
+
+  ul.plain { margin: 10px 0 0 20px; }
+  ul.plain li { margin: 4px 0; }
+
+  .callout { border-radius: 10px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
+  .callout .ct { font-weight: 800; margin-right: 6px; }
+  .callout.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .callout.tip { background: var(--tip-bg); border: 1px solid var(--tip-line); }
+  .callout.danger { background: var(--danger-bg); border: 1px solid var(--danger-line); }
+
+  table.tbl { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; background: #fff; }
+  table.tbl th, table.tbl td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.tbl th { background: #f0f4fa; font-size: 13px; }
+  .tbl-scroll { overflow-x: auto; }
+  .ok { color: #389e0d; font-weight: 700; }
+  .no { color: #cf1322; font-weight: 700; }
+
+  kbd.ui {
+    display: inline-block; background: #f0f2f5; border: 1px solid #d0d5dd; border-bottom-width: 2px;
+    border-radius: 6px; padding: 1px 8px; font-size: 13px; font-family: inherit; font-weight: 600;
+  }
+
+  figure.shot { margin-top: 18px; }
+  figure.shot img {
+    max-width: 100%; border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(20,40,80,.08);
+  }
+  /* 모바일 앱 세로 스크린샷: 폭 제한 + 가운데 정렬 */
+  figure.shot.mobile img { max-width: 300px; display: block; margin: 0 auto; }
+  figure.shot.mobile.duo { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  figure.shot.mobile.duo img { margin: 0; }
+  figure.shot.mobile.duo figcaption { width: 100%; }
+  figure.shot .ph {
+    display: none; border: 2px dashed #c4cdda; border-radius: 10px; background: #fafbfd;
+    color: #8a94a3; text-align: center; padding: 48px 16px; font-size: 13.5px;
+  }
+  figure.shot.missing img { display: none; }
+  figure.shot.missing .ph { display: block; }
+  figure.shot figcaption { font-size: 13px; color: var(--ink-soft); margin-top: 6px; text-align: center; }
+
+  .term-grid dt { font-weight: 800; margin-top: 14px; }
+  .term-grid dd { margin-left: 0; color: var(--ink-soft); }
+
+  mark { background: #fff08a; border-radius: 3px; padding: 0 2px; }
+
+  footer.doc-foot { margin-top: 64px; color: var(--ink-soft); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  /* ---------- PDF 페이지 전환 설정 모달 ---------- */
+  #pbOverlay {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 80;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  #pbOverlay[hidden] { display: none; }
+  #pbModal {
+    background: #fff; border-radius: 14px; width: 600px; max-width: 100%;
+    max-height: 78vh; display: flex; flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,.28); overflow: hidden;
+  }
+  #pbModal .pb-head { padding: 18px 22px 10px; }
+  #pbModal .pb-head h3 { font-size: 17px; }
+  #pbModal .pb-desc { font-size: 13px; color: var(--ink-soft); margin-top: 6px; line-height: 1.6; }
+  #pbList { overflow-y: auto; padding: 6px 22px 12px; flex: 1; }
+  #pbList .pb-chapter {
+    font-size: 12px; font-weight: 800; color: var(--ink-soft); margin: 14px 0 4px;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  #pbList label.pb-row {
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+    border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  #pbList label.pb-row:hover { background: #f0f4fa; }
+  #pbList input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  #pbModal .pb-foot {
+    display: flex; align-items: center; gap: 12px; padding: 12px 22px;
+    border-top: 1px solid var(--line); background: #f8fafc;
+  }
+  #pbModal .pb-hint { font-size: 12px; color: var(--ink-soft); flex: 1; }
+  #pbModal .pb-foot button {
+    background: var(--brand); color: #fff; border: none; border-radius: 8px;
+    padding: 8px 20px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  #pbModal .pb-foot button:hover { background: #3a72ff; }
+
+  /* ---------- 반응형 ---------- */
+  @media (max-width: 960px) {
+    .sidebar { transform: translateX(-100%); transition: transform .2s; }
+    .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.18); }
+    .main { margin-left: 0; padding: 76px 18px 90px; }
+    #menuToggle { display: inline-block; }
+  }
+
+  /* ---------- 인쇄(PDF) ---------- */
+  @media print {
+    .topbar, .sidebar { display: none !important; }
+    .main { margin: 0; padding: 0; max-width: none; }
+    /* 항목(article)이 페이지보다 길면 통째로 밀려 빈 페이지가 생기므로 중간 분할 허용.
+       대신 제목·이미지·표·박스 단위로만 붙잡아 어색한 절단을 막는다 */
+    article.topic { border: none; padding: 12px 0; break-inside: auto; }
+    article.topic h3, article.topic h4, section.chapter > h2 { break-after: avoid; }
+    figure.shot, table.tbl, .callout, ol.steps > li, ul.plain > li { break-inside: avoid; }
+    dl.term-grid dt { break-after: avoid; }
+    dl.term-grid dd { break-inside: avoid; }
+    figure.shot img { max-height: 460px; width: auto; max-width: 100%; }
+    figure.shot.mobile img { max-height: 420px; }
+    section.chapter { break-before: page; }
+    section.chapter:first-of-type { break-before: auto; }
+    /* 커스텀 페이지 전환: 지정된 항목은 PDF에서 새 페이지로 시작 (화면 표시에는 영향 없음) */
+    article.pdf-break { break-before: page; }
+    figure.shot .ph { display: none !important; }
+    #pbOverlay { display: none !important; }
+    body { background: #fff; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button id="menuToggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰ 목차</button>
+  <span class="logo">TBM 앱</span>
+  <span class="sub">사용 설명서</span>
+  <span class="spacer"></span>
+  <button id="pbSettingsBtn" title="PDF 저장 시 어떤 항목부터 새 페이지로 시작할지 설정">⚙ PDF 페이지 설정</button>
+  <button onclick="window.print()">🖨 PDF로 저장 / 인쇄</button>
+</div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="search-wrap">
+    <input id="searchBox" type="search" placeholder="🔍 검색 (예: 서명, 인증번호, SOS)" autocomplete="off">
+  </div>
+  <div id="navRoot">
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">0. 핵심 용어 정리</span></div>
+      <a class="nav-item" href="#concepts" data-kw="용어 개념 체크리스트 서명 지오펜스 파견 웹 앱 역할">꼭 알아야 할 용어/개념</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">1. 시작하기</span></div>
+      <a class="nav-item" href="#install" data-kw="설치 스토어 권한 위치 카메라 알림 준비물">설치와 준비물</a>
+      <a class="nav-item" href="#login-id" data-kw="로그인 아이디 이메일 비밀번호 정규직 로그인 상태 유지">로그인 — 정규직</a>
+      <a class="nav-item" href="#login-otp" data-kw="인증번호 외부 근로자 일용직 휴대폰 이름 PIN">로그인 — 외부 근로자</a>
+      <a class="nav-item" href="#biometric" data-kw="생체인증 지문 얼굴 자동 로그인 PIN 본인 확인">생체인증·자동 로그인</a>
+      <a class="nav-item" href="#layout" data-kw="화면 구성 홈 날씨 긴급 카드 메뉴 드로어">화면 구성 익히기</a>
+      <a class="nav-item" href="#site-select" data-kw="현장 선택 다중 현장 파견 배지 전환">현장 선택 (여러 현장)</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">2. 주요 기능</span></div>
+      <a class="nav-item" href="#tbm-start" data-kw="오늘 TBM 시작하기 세션 참석 책임자">⭐오늘의 TBM 시작하기</a>
+      <a class="nav-item" href="#checklist" data-kw="체크리스트 확인하였음 이슈 있음 주의사항 PPE 설문">⭐체크리스트 응답하기</a>
+      <a class="nav-item" href="#sign" data-kw="서명 자필 다시 서명 완료하기 제출">참여 완료 — 자필 서명</a>
+      <a class="nav-item" href="#geofence" data-kw="위치 인증 지오펜스 geo-fence gps 반경">참여 완료 — 위치 인증</a>
+      <a class="nav-item" href="#tbm-record" data-kw="기록 이전 완료 미완료 예정 필터 서명 확인">지난 TBM 기록 확인</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">3. 부가 기능</span></div>
+      <a class="nav-item" href="#suggest-new" data-kw="건의사항 새 건의 제목 내용 사진 등록">건의사항 작성하기</a>
+      <a class="nav-item" href="#suggest-view" data-kw="건의사항 조회 답글 조치 이력 미조치 조치중 조치 완료">건의사항 조회·답글</a>
+      <a class="nav-item" href="#dispatch" data-kw="파견 초대 수락 거절 모달 기간">파견 초대 수락/거절</a>
+      <a class="nav-item" href="#notif" data-kw="알림 설정 푸시 push TBM 등록 알림">알림 설정</a>
+      <a class="nav-item" href="#language" data-kw="언어 한국어 english 변경">언어 변경</a>
+      <a class="nav-item" href="#logout-delete" data-kw="로그아웃 계정 삭제 탈퇴">로그아웃·계정 삭제</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">4. 문제 생겼을 때</span></div>
+      <a class="nav-item" href="#hazard" data-kw="위험원 보고 위험 신고 사진">⭐위험원 보고</a>
+      <a class="nav-item" href="#sos" data-kw="SOS 긴급 사이렌 구조 전송">⭐긴급 SOS</a>
+      <a class="nav-item" href="#stop" data-kw="작업 중지 요청 사유 사진 전송">작업 중지 요청</a>
+      <a class="nav-item" href="#login-trouble" data-kw="로그인 안됨 오류 계약 만료 조직 인증번호">로그인이 안 될 때</a>
+      <a class="nav-item" href="#geofence-trouble" data-kw="위치 인증 실패 GPS 권한 반경">위치 인증이 안 될 때</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">부록</span></div>
+      <a class="nav-item" href="#faq" data-kw="FAQ 자주 묻는 질문 문제 해결">A. 자주 묻는 질문 (FAQ)</a>
+      <a class="nav-item" href="#appendix-perm" data-kw="권한별 기능 정규직 외부 근로자 비교표">B. 이용자 유형별 기능표</a>
+      <a class="nav-item" href="#appendix-terms" data-kw="용어집 정의">C. 용어집</a>
+      <a class="nav-item" href="#appendix-errors" data-kw="오류 에러 메시지 해결">D. 오류 메시지 사전</a>
+    </div>
+  </div>
+  <div class="no-result" id="noResult">검색 결과가 없습니다.</div>
+</nav>
+
+<main class="main">
+
+  <div class="doc-head">
+    <h1>TBM 앱 사용 설명서</h1>
+    <p>영업·마케팅·운영·총무·관리직 등 비개발 직군과 현장 근로자를 위한 TBM(Tool Box Meeting) 모바일 앱 사용 안내서입니다.</p>
+  </div>
+
+  <!-- ======================= 0. 핵심 개념 ======================= -->
+  <section class="chapter" id="ch0">
+    <h2>0. 핵심 용어 정리</h2>
+    <article class="topic" id="concepts"><h3>꼭 알아야 할 용어/개념</h3>
+
+      <h4>관리자 웹 ↔ 모바일 앱, 역할이 다릅니다</h4>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th style="width:120px">구분</th><th>관리자 웹 (PC)</th><th>모바일 앱 (이 설명서)</th></tr>
+        <tr><td><b>하는 일</b></td><td>TBM 양식 작성, <b>발송(전송 등록)</b>, 참여 현황 관리, 민원 조치</td><td>발송된 TBM에 <b>참여</b>(체크리스트·서명), 위험원 보고·SOS·작업 중지 <b>발신</b>, 건의사항 작성</td></tr>
+        <tr><td><b>쓰는 사람</b></td><td>Admin / Manager</td><td>현장 근로자 전원 (정규직 + 외부 근로자)</td></tr>
+        <tr><td><b>흐름</b></td><td colspan="2">웹에서 발송 → 앱으로 Push 알림 도착 → <b>앱에서 참여</b> → 웹에서 참여율 확인</td></tr>
+      </tbody></table>
+      </div>
+
+      <h4>용어 정리</h4>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th style="width:180px">용어</th><th>의미</th></tr>
+        <tr><td><b>TBM (Tool Box Meeting)</b></td><td>작업 전 실시하는 단시간 안전회의. 관리자가 웹에서 발송하면 근로자가 앱에서 참여합니다.</td></tr>
+        <tr><td><b>체크리스트</b></td><td>TBM 1건에 담긴 확인 항목 묶음. <b>주의사항 / 개인안전보호구(PPE) / 오늘의 특별 공지</b>로 구성됩니다.</td></tr>
+        <tr><td><b>확인하였음 / 이슈 있음</b></td><td>체크리스트 항목별 응답 2종. <b>"이슈 있음"</b>을 누르면 해당 항목이 관리자에게 <b>TBM 이슈</b>로 자동 접수됩니다.</td></tr>
+        <tr><td><b>서명 방식 3종</b></td><td><b>자필 서명</b>(화면에 손가락 서명) / <b>위치 인증(Geo-Fence)</b>(현장 GPS 반경 안 확인) / <b>확인만</b>(서명 없음). 어떤 방식인지는 관리자가 발송할 때 정합니다.</td></tr>
+        <tr><td><b>정규직 / 외부 근로자</b></td><td><b>정규직</b>: 아이디(이메일)로 로그인하는 소속 인원. <b>외부 근로자</b>: 현장에 게시된 <b>인증번호</b> + 이름 + 휴대폰 번호로 로그인하는 일용직.</td></tr>
+        <tr><td><b>파견</b></td><td>다른 조직 현장의 TBM 대상으로 <b>초대받는 것</b>. 앱에서 수락하면 현장 선택 목록에 파견 현장이 추가됩니다(주황색 <b>"파견"</b> 배지).</td></tr>
+        <tr><td><b>건의사항</b></td><td>위험원 보고 · 작업 중지 · SOS · 건의 · TBM 이슈가 모두 모이는 곳. 관리자와 <b>조치 이력</b>(답글)으로 소통합니다.</td></tr>
+        <tr><td><b>TBM 상태 3종</b></td><td><b>예정</b>(아직 시작 전) / <b>완료</b>(참여 마침) / <b>미완료</b>(날짜가 지났는데 미참여).</td></tr>
+        <tr><td><b>조치 상태 3종</b></td><td>건의·신고의 처리 단계: <b>미조치 → 조치중 → 조치 완료</b>.</td></tr>
+      </tbody></table>
+      </div>
+      <div class="callout tip"><span class="ct">💡 팁</span>하루 흐름 한 줄 요약: <b>Push 알림 도착 → 오늘의 TBM 시작하기 → 체크리스트 응답(확인하였음/이슈 있음) → 서명 또는 위치 인증 → TBM 완료하기</b></div>
+    </article>
+  </section>
+
+  <!-- ======================= 1. 시작하기 ======================= -->
+  <section class="chapter" id="ch1">
+    <h2>1. 시작하기</h2>
+
+    <article class="topic" id="install">
+      <h3>1.1 설치와 준비물 <span class="badge all">전체</span></h3>
+      <p class="purpose">앱을 설치하고 로그인에 필요한 것을 준비합니다.</p>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th style="width:140px">이용자</th><th>준비물</th></tr>
+        <tr><td><b>정규직</b></td><td>회사 계정 이메일·비밀번호 (SafetyDesigner 계정과 동일). 계정이 없으면 사내 관리자(Admin)에게 등록을 요청하세요.</td></tr>
+        <tr><td><b>외부 근로자</b></td><td>현장에 게시된 <b>인증번호</b> + 본인 이름 + 휴대폰 번호. 인증번호는 관리자가 공장별로 발급해 현장에 게시합니다.</td></tr>
+      </tbody></table>
+      </div>
+      <h4>앱이 요청하는 권한</h4>
+      <ul class="plain">
+        <li><b>위치</b> — 위치 인증(Geo-Fence) 서명과 현장 날씨 표시에 사용</li>
+        <li><b>카메라·사진</b> — 위험원 보고, 작업 중지, 건의사항의 사진 첨부에 사용</li>
+        <li><b>알림</b> — TBM 발송 Push 알림 수신에 사용</li>
+      </ul>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>알림 권한을 거부하면 TBM이 발송돼도 Push 알림이 오지 않습니다. 앱은 정상 동작하지만 참여 시각을 놓치기 쉬우니 허용을 권장합니다.</div>
+    </article>
+
+    <article class="topic" id="login-id">
+      <h3>1.2 로그인 — 정규직 (아이디 로그인) <span class="badge manager">정규직</span></h3>
+      <p class="purpose">이메일과 비밀번호로 로그인합니다.</p>
+      <figure class="shot mobile"><img src="img/01-login.png" alt="로그인 — 아이디 로그인 탭" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 로그인(아이디 로그인)</div><figcaption>로그인 화면 — "아이디 로그인" 탭</figcaption></figure>
+      <ol class="steps">
+        <li>앱을 열고 <kbd class="ui">아이디 로그인</kbd> 탭을 선택합니다.</li>
+        <li><b>아이디</b> 칸에 이메일을 입력합니다. (입력 안내: "이메일을 입력하세요.")<br>→ 이메일/비밀번호는 SafetyDesigner 계정과 동일합니다.</li>
+        <li><b>비밀번호</b>를 입력합니다.</li>
+        <li>다음부터 자동으로 로그인하려면 <kbd class="ui">로그인 상태 유지</kbd>를 체크합니다.</li>
+        <li><kbd class="ui">로그인</kbd>을 누릅니다.</li>
+        <li>로그인 직후 <b>생체인증 등록</b> 안내가 뜰 수 있습니다 — <a href="#biometric">1.4 참고</a>. (<kbd class="ui">나중에</kbd>로 건너뛰어도 됩니다)</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>화면 상단의 <kbd class="ui">KO</kbd>/<kbd class="ui">EN</kbd> 버튼으로 로그인 화면 언어를 바꿀 수 있습니다. 로그인이 안 되면 <a href="#login-trouble">4.4 로그인이 안 될 때</a>를 보세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="login-otp">
+      <h3>1.3 로그인 — 외부 근로자 (인증번호 로그인) <span class="badge temp">외부 근로자</span></h3>
+      <p class="purpose">현장에 게시된 인증번호와 이름·휴대폰 번호로 로그인합니다.</p>
+      <figure class="shot mobile"><img src="img/02-login-otp.png" alt="로그인 — 인증번호 로그인 탭" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 로그인(인증번호 로그인)</div><figcaption>로그인 화면 — "인증번호 로그인" 탭</figcaption></figure>
+      <ol class="steps">
+        <li><kbd class="ui">인증번호 로그인</kbd> 탭을 선택합니다.</li>
+        <li><b>인증번호</b>를 입력합니다. (현장 게시물 참고 — 자동으로 대문자 처리됩니다)</li>
+        <li><b>휴대폰 번호</b>를 입력합니다. (안내: "01012345678 형식으로 입력해주세요.")</li>
+        <li><b>이름</b>을 입력합니다.</li>
+        <li><kbd class="ui">로그인</kbd>을 누릅니다.</li>
+        <li><b>본인 확인</b> 단계가 이어집니다: 기기에 지문·얼굴 인식이 있으면 <b>생체인증</b>(최초 1회 등록 필수), 없으면 <b>PIN 4자리</b>를 설정·입력합니다.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>외부 근로자는 보안을 위해 <b>로그인할 때마다 본인 확인</b>(생체인증 또는 PIN)을 거치며, 자동 로그인이 되지 않습니다. PIN을 잊었다면 "PIN을 잊으셨나요?" → 안내에 따라 <b>관리자에게 인증 정보 초기화를 요청</b>하세요. 초기화 후 다시 로그인하면 새 PIN을 설정할 수 있습니다.</div>
+      <div class="callout tip"><span class="ct">💡 팁</span>인증번호가 맞지 않으면 관리자가 번호를 <b>갱신</b>했을 수 있습니다. 현장에 게시된 최신 번호를 확인하세요.</div>
+    </article>
+
+    <article class="topic" id="biometric">
+      <h3>1.4 생체인증·자동 로그인 <span class="badge all">전체</span></h3>
+      <p class="purpose">다음 로그인부터 지문·얼굴 인식으로 빠르게 들어갑니다.</p>
+      <h4>정규직</h4>
+      <ol class="steps">
+        <li>이메일 로그인 직후 뜨는 안내에서 <kbd class="ui">등록</kbd>을 누릅니다. (안내 문구: "다음부터 생체인증(지문·얼굴)으로 빠르게 로그인하시겠습니까?")</li>
+        <li>기기의 지문·얼굴 인식을 완료하면 "생체인증 로그인이 등록되었습니다." 메시지가 표시됩니다.</li>
+        <li>다음부터 로그인 화면에 <kbd class="ui">생체인증 로그인</kbd> 버튼이 나타납니다 — 누르면 비밀번호 없이 로그인됩니다.</li>
+        <li>로그인할 때 <kbd class="ui">로그인 상태 유지</kbd>를 체크해 두면 앱을 다시 열 때 자동으로 로그인됩니다.</li>
+      </ol>
+      <h4>외부 근로자</h4>
+      <ul class="plain">
+        <li>생체인증(또는 PIN)이 <b>필수</b>입니다. 매 로그인 시 본인 확인을 거치며, 자동 로그인은 지원하지 않습니다.</li>
+      </ul>
+      <div class="callout tip"><span class="ct">💡 팁</span>휴대폰을 바꿨거나 생체인증이 계속 실패하면 관리자에게 <b>인증 정보 초기화</b>를 요청한 뒤 다시 등록하세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="layout">
+      <h3>1.5 화면 구성 익히기 <span class="badge all">전체</span></h3>
+      <p class="purpose">홈 화면과 오른쪽 메뉴만 알면 모든 기능에 닿을 수 있습니다.</p>
+      <figure class="shot mobile"><img src="img/03-home.png" alt="홈 화면" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 홈 화면</div><figcaption>홈 화면 — 로그인 직후 첫 화면</figcaption></figure>
+      <h4>홈 화면 (위에서 아래로)</h4>
+      <ul class="plain">
+        <li><b>상단 헤더</b>: 현재 <b>현장 이름</b> (여러 현장 소속이면 ▼ 표시 — 탭하여 <a href="#site-select">현장 선택</a>) + ☰ 메뉴 버튼</li>
+        <li><b>현장 날씨</b> 카드: 현재 기온·풍속·습도, 최저/최고/강수확률. 새로고침 버튼 제공</li>
+        <li><b>오늘의 TBM</b> 카드: 오늘 참여할 TBM — 탭하면 바로 시작 (<a href="#tbm-start">2.1</a>)</li>
+        <li><b>긴급 카드 3종</b> (좌우로 넘김): <b>위험원 보고</b> / <b>긴급 SOS 전송</b> / <b>작업 중지 요청</b> (<a href="#hazard">4장</a>)</li>
+        <li><b>건의사항</b> 요약 카드: 조치 완료 / 조치중 / 미조치 건수 + 최근 건의. <kbd class="ui">전체 건의사항 보기</kbd>로 이동</li>
+      </ul>
+      <h4>오른쪽 메뉴 (☰ 버튼)</h4>
+      <ul class="plain">
+        <li><b>홈</b>(대시보드) / <b>Tool Box Meeting</b>(작업전 안전회의) / <b>건의사항</b>(의견·요청) / <b>설정</b>(계정·알림)</li>
+        <li><b>언어</b> — 한국어(기본) / English (<a href="#language">3.5</a>)</li>
+        <li><b>로그아웃</b> (<a href="#logout-delete">3.6</a>)</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="site-select">
+      <h3>1.6 현장 선택 (여러 현장 소속일 때) <span class="badge manager">정규직</span></h3>
+      <p class="purpose">여러 현장(사업장)에 소속됐거나 파견 중이라면, 보고 있는 현장을 전환합니다.</p>
+      <figure class="shot mobile"><img src="img/04-site-picker.png" alt="현장 선택" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 현장 선택</div><figcaption>"현장 선택" — 홈 상단 현장 이름을 탭하면 열립니다</figcaption></figure>
+      <ol class="steps">
+        <li>홈 상단의 <b>현장 이름 ▼</b>을 탭합니다. (현장이 하나뿐이면 ▼가 없고 전환할 필요도 없습니다)</li>
+        <li><b>현장 선택</b> 목록에서 원하는 현장을 탭합니다. 현재 현장에는 ✓ 표시가 있습니다.</li>
+        <li>파견으로 소속된 현장에는 주황색 <b>파견</b> 배지가 붙습니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>현장을 바꾸면 <b>오늘의 TBM · TBM 기록 · 건의사항</b>이 모두 선택한 현장 기준으로 바뀝니다. "오늘 TBM이 안 보여요"의 흔한 원인이 다른 현장을 보고 있는 경우입니다. 설정 화면에서도 현장을 바꿀 수 있습니다. 외부 근로자는 인증번호의 현장 한 곳으로 고정됩니다.</div>
+    </article>
+  </section>
+
+  <!-- ======================= 2. 주요 기능 ======================= -->
+  <section class="chapter" id="ch2">
+    <h2>2. 주요 기능 | 매일 하는 일 — TBM 참여</h2>
+
+    <article class="topic" id="tbm-start">
+      <h3>2.1 오늘의 TBM 시작하기 ★ <span class="badge menu">홈 또는 Tool Box Meeting 탭</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">오늘 발송된 TBM을 열어 참여를 시작합니다. 매일 가장 자주 쓰는 기능입니다.</p>
+      <figure class="shot mobile duo"><img src="img/05-tbm-list.png" alt="TBM 목록" onerror="this.closest('figure').classList.add('missing')"><img src="img/06-tbm-session.png" alt="TBM 세션 요약" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — TBM 목록 / 세션 요약</div><figcaption>왼쪽: Tool Box Meeting 목록(TODAY 카드) / 오른쪽: 시작 전 요약 화면</figcaption></figure>
+      <ol class="steps">
+        <li>홈의 <b>오늘의 TBM</b> 카드를 탭하거나, 메뉴에서 <b>Tool Box Meeting</b>으로 이동해 <b>TODAY</b> 카드의 <kbd class="ui">TBM 시작하기</kbd>를 누릅니다.</li>
+        <li>요약 화면에서 오늘 내용을 확인합니다: <b>작업 책임자</b> / <b>현장</b> / <b>참석 인원</b>, 그리고 체크리스트 구성 — <b>주의사항</b>·<b>개인안전보호구(PPE)</b>·<b>오늘의 특별 공지</b>별 건수.</li>
+        <li>하단 <kbd class="ui">시작하기</kbd>를 누르면 체크리스트가 시작됩니다 (<a href="#checklist">2.2</a>).</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>시작 시각 전에는 버튼 대신 <b>"{시각}부터 참여할 수 있습니다"</b>가 표시되고 눌리지 않습니다. 오늘 TBM이 없으면 "오늘 등록된 TBM 일정이 없습니다."가 표시됩니다 — 발송 여부는 관리자에게 확인하세요. 여러 현장 소속이라면 <a href="#site-select">현장 선택</a>이 맞는지 먼저 확인하세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="checklist">
+      <h3>2.2 체크리스트 응답하기 ★ <span class="badge all">전체</span></h3>
+      <p class="purpose">체크리스트 항목을 한 장씩 읽고 "확인하였음" 또는 "이슈 있음"으로 응답합니다.</p>
+      <figure class="shot mobile"><img src="img/07-checklist-item.png" alt="체크리스트 항목" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 체크리스트 항목</div><figcaption>체크리스트 — 항목 1장씩 확인 (하단: 이슈 있음 / 확인하였음)</figcaption></figure>
+      <ol class="steps">
+        <li>카드에 표시된 항목을 읽습니다. 상단에 <b>주의사항 1 / 3</b>처럼 분류와 순번이, 항목에 따라 <b>위험인자 / 유해요인</b> 태그가 표시됩니다.</li>
+        <li>문제 없으면 <kbd class="ui">확인하였음</kbd>(파란색)을 누릅니다. "확인 완료" 표시가 잠깐 나타나고 다음 항목으로 넘어갑니다.</li>
+        <li>현장 상태가 항목과 다르거나 문제가 있으면 <kbd class="ui">이슈 있음</kbd>(회색)을 누릅니다. "이슈 보고됨"이 표시되고, 해당 항목이 관리자에게 <b>TBM 이슈</b>로 자동 접수됩니다.</li>
+        <li>실수로 잘못 눌렀다면 <kbd class="ui">이전</kbd>으로 돌아가 다시 응답할 수 있습니다. 응답해야 <kbd class="ui">다음</kbd>이 활성화됩니다.</li>
+        <li>모든 항목에 응답하면 참여 완료 단계로 넘어갑니다 — 서명 방식에 따라 <a href="#sign">2.3 자필 서명</a> / <a href="#geofence">2.4 위치 인증</a> / 확인만(버튼 한 번).</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>"이슈 있음"으로 보고한 내용은 <b>건의사항</b>에서 "[TBM 이슈]"로 확인하고 조치 이력을 추적할 수 있습니다 (<a href="#suggest-view">3.2</a>).</div>
+    </article>
+
+    <article class="topic" id="sign">
+      <h3>2.3 참여 완료 — 자필 서명 <span class="badge all">전체</span></h3>
+      <p class="purpose">서명 방식이 "자필 서명"인 TBM은 화면에 손가락으로 서명해 참여를 마칩니다.</p>
+      <figure class="shot mobile"><img src="img/08-checklist-sign.png" alt="참석 확인 및 서명" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 참석 확인 및 서명</div><figcaption>"참석 확인 및 서명" — 응답 요약 + 서명 영역</figcaption></figure>
+      <ol class="steps">
+        <li>응답 요약(<b>전체 / 확인 / 이슈</b> 건수)을 확인합니다. 수정하려면 <kbd class="ui">목록으로 돌아가기</kbd>로 되돌아갑니다.</li>
+        <li><b>서명</b> 영역("서명하기")에 손가락으로 서명합니다. 잘못 그렸으면 <kbd class="ui">다시 서명</kbd>으로 지우고 다시 합니다.</li>
+        <li><kbd class="ui">TBM 완료하기</kbd>를 누릅니다. 이슈를 보고한 항목이 있으면 버튼이 <kbd class="ui">이슈 보고 및 서명 제출</kbd>로 표시됩니다.</li>
+        <li>전송 중에는 "전송 중…"이 표시됩니다. 완료되면 TBM 목록으로 돌아가고 오늘 TBM이 <b>완료</b> 상태가 됩니다.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>서명을 하지 않으면 완료 버튼 자리에 "서명을 해주세요."가 표시됩니다. "서명 전송 실패" 안내가 뜨면 네트워크 상태를 확인한 뒤 다시 시도하세요 — 제출 전이므로 참여 기록은 아직 남지 않은 상태입니다.</div>
+    </article>
+
+    <article class="topic" id="geofence">
+      <h3>2.4 참여 완료 — 위치 인증(Geo-Fence) <span class="badge all">전체</span></h3>
+      <p class="purpose">서명 방식이 "Geo-Fence"인 TBM은 현장 GPS 반경 안에 있는지 확인해 참여를 마칩니다.</p>
+      <figure class="shot mobile"><img src="img/09-checklist-geofence.png" alt="위치 인증" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 위치 인증</div><figcaption>"위치 인증" — 현장 반경 내 위치 확인</figcaption></figure>
+      <ol class="steps">
+        <li>체크리스트 응답이 끝나면 자동으로 <b>"위치 확인 중…"</b>이 진행됩니다. (위치 권한 허용 필요)</li>
+        <li><b>"위치 인증 완료 — 현장 반경 내 위치가 확인되었습니다."</b>가 표시되면 <kbd class="ui">TBM 완료하기</kbd>를 누릅니다.</li>
+        <li>실패 시 <b>"현장 반경 밖에 있습니다. (거리 m / 허용 m)"</b>가 표시됩니다 — 현장 안으로 이동한 뒤 <kbd class="ui">다시 시도</kbd>를 누르세요.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>위치 권한·GPS 오류가 계속되면 <a href="#geofence-trouble">4.5 위치 인증이 안 될 때</a>를 보세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="tbm-record">
+      <h3>2.5 지난 TBM 기록 확인 <span class="badge menu">Tool Box Meeting &gt; 이전 기록</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">과거에 참여한(또는 놓친) TBM 내용을 다시 봅니다.</p>
+      <figure class="shot mobile"><img src="img/10-tbm-record.png" alt="TBM 기록" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — TBM 기록</div><figcaption>"TBM 기록" — 항목별 응답과 서명 확인</figcaption></figure>
+      <ol class="steps">
+        <li>메뉴에서 <b>Tool Box Meeting</b>으로 이동해 <b>이전 기록</b> 목록을 봅니다.</li>
+        <li>상단 필터 탭으로 거릅니다: <kbd class="ui">전체</kbd> / <kbd class="ui">완료</kbd> / <kbd class="ui">미완료</kbd> / <kbd class="ui">예정</kbd> (건수 표시).</li>
+        <li>기록을 탭해 상세를 엽니다. 항목별로 <b>확인 완료</b> / <b>이슈 있음</b> 응답, <b>특별 공지</b>, 그리고 <b>참석 확인 서명</b>(자필 서명 이미지, 또는 "위치 인증으로 참여 완료")을 볼 수 있습니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>서명 칸에 "서명 기록이 없습니다. 미참여 또는 미완료일 수 있습니다."가 보이면 그날 TBM에 참여하지 않은 것입니다. <b>예정</b> 상태의 기록은 아직 열 수 없습니다.</div>
+    </article>
+  </section>
+
+  <!-- ======================= 3. 부가 기능 ======================= -->
+  <section class="chapter" id="ch3">
+    <h2>3. 부가 기능 | 가끔 하는 일</h2>
+
+    <article class="topic" id="suggest-new">
+      <h3>3.1 건의사항 작성하기 <span class="badge menu">건의사항 &gt; ✏</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">현장 개선 요청이나 의견을 사진과 함께 등록합니다.</p>
+      <figure class="shot mobile"><img src="img/11-suggestion-new.png" alt="새 건의" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 새 건의</div><figcaption>"새 건의" 작성 화면</figcaption></figure>
+      <ol class="steps">
+        <li>메뉴에서 <b>건의사항</b>으로 이동해 오른쪽 아래 ✏ 버튼을 누릅니다.</li>
+        <li><b>제목</b>을 입력합니다. (필수, "건의 제목을 입력해 주세요")</li>
+        <li><b>내용</b>을 입력합니다. ("개선이 필요한 점과 현장 상황을 자세히 작성해 주세요")</li>
+        <li>필요하면 <b>사진 첨부</b> — <kbd class="ui">카메라로 촬영</kbd> 또는 <kbd class="ui">앨범에서 선택</kbd>, 최대 3장.</li>
+        <li><kbd class="ui">등록</kbd>을 누릅니다. 등록된 건의는 목록에서 <b>미조치</b> 상태로 시작합니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>위험 요소를 발견했다면 일반 건의 대신 홈의 <b>위험원 보고</b> 카드를 쓰세요 (<a href="#hazard">4.1</a>) — 관리자에게 더 눈에 띄게 전달됩니다.</div>
+    </article>
+
+    <article class="topic" id="suggest-view">
+      <h3>3.2 건의사항 조회·답글 달기 <span class="badge menu">건의사항</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">내 건의·신고의 조치 진행 상황을 확인하고 관리자와 답글로 소통합니다.</p>
+      <figure class="shot mobile duo"><img src="img/12-suggestions.png" alt="건의사항 목록" onerror="this.closest('figure').classList.add('missing')"><img src="img/13-suggestion-detail.png" alt="건의사항 상세" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 건의사항 목록/상세</div><figcaption>왼쪽: 건의사항 목록(검색·필터) / 오른쪽: 상세(조치 이력·답글)</figcaption></figure>
+      <ol class="steps">
+        <li><b>건의사항</b> 목록에서 검색·필터 칩으로 원하는 건을 찾습니다. 상태는 <b>미조치 / 조치중 / 조치 완료</b>로 표시됩니다.</li>
+        <li>건을 탭해 상세를 엽니다. 위험원 보고는 "[위험원]", SOS는 "[긴급] SOS 요청", TBM 이슈는 "TBM 이슈 발생"으로 제목이 붙습니다.</li>
+        <li><b>조치 이력</b>에서 관리자의 답글·상태 변경 기록을 확인합니다. (아직 없으면 "등록된 조치 이력이 없습니다.")</li>
+        <li>하단 입력창("답글을 입력하세요")에 내용을 쓰고 <kbd class="ui">전송</kbd>합니다. 내가 쓴 답글은 <kbd class="ui">수정</kbd>·<kbd class="ui">삭제</kbd>할 수 있습니다.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span><b>조치 완료</b>된 건은 답글 입력창이 닫힙니다. 추가로 할 말이 있으면 새 건의를 등록하세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="dispatch">
+      <h3>3.3 파견 초대 수락/거절 <span class="badge manager">정규직</span></h3>
+      <p class="purpose">다른 조직 현장에서 온 파견 초대를 수락하거나 거절합니다.</p>
+      <figure class="shot mobile"><img src="img/14-dispatch.png" alt="파견 초대" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 파견 초대</div><figcaption>"파견 초대" — 로그인 직후 모달 또는 설정 화면</figcaption></figure>
+      <ol class="steps">
+        <li>파견 초대가 오면 <b>로그인 직후 홈에 "파견 초대" 창</b>이 자동으로 뜹니다. 나중에 처리하려면 <b>설정</b> 화면의 <b>파견 초대 (N)</b> 섹션에서도 볼 수 있습니다.</li>
+        <li>초대 카드에서 <b>초대한 현장·조직</b>, <b>기간</b>(시작일 없으면 "즉시", 종료일 없으면 "무기한"), 메모를 확인합니다.</li>
+        <li><kbd class="ui">수락</kbd> 또는 <kbd class="ui">거절</kbd>을 누릅니다.</li>
+        <li>수락하면 <a href="#site-select">현장 선택</a> 목록에 파견 현장이 <b>파견</b> 배지와 함께 추가되고, 그 현장의 TBM에 참여할 수 있습니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 개념</span>파견 초대는 관리자가 웹에서 보냅니다. 파견이 종료되면(관리자 종료 또는 기간 만료) 현장 목록에서 자동으로 사라집니다. 외부 근로자에게는 파견 기능이 없습니다.</div>
+    </article>
+
+    <article class="topic" id="notif">
+      <h3>3.4 알림 설정 <span class="badge menu">설정</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">Push 알림 수신 여부를 조절합니다.</p>
+      <figure class="shot mobile"><img src="img/15-profile.png" alt="설정" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 설정</div><figcaption>"설정" 화면 — 내 정보·현장 선택·알림·계정</figcaption></figure>
+      <ol class="steps">
+        <li>메뉴에서 <b>설정</b>으로 이동합니다. 내 이름·<b>소속 현장</b>·<b>권한</b>을 확인할 수 있습니다.</li>
+        <li><kbd class="ui">App Push 알림 받기</kbd> — 앱 전체 Push 알림을 켜고 끕니다.</li>
+        <li><kbd class="ui">TBM 등록 알림 받기</kbd> — TBM 발송 알림만 따로 켜고 끕니다.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>앱 안의 토글을 켜도 <b>휴대폰 설정에서 앱 알림 자체를 꺼두면</b> 알림이 오지 않습니다. 알림이 안 오면 휴대폰 설정 &gt; 알림에서 이 앱의 알림 허용 여부를 먼저 확인하세요.</div>
+    </article>
+
+    <article class="topic" id="language">
+      <h3>3.5 언어 변경 (한국어/English) <span class="badge menu">메뉴 &gt; 언어</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">앱 표시 언어를 바꿉니다.</p>
+      <ol class="steps">
+        <li>☰ 메뉴를 열고 <kbd class="ui">언어</kbd>를 탭합니다.</li>
+        <li><kbd class="ui">한국어</kbd>(기본) 또는 <kbd class="ui">English</kbd>를 선택합니다 — 즉시 적용됩니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>로그인 화면에서는 상단 <kbd class="ui">KO</kbd>/<kbd class="ui">EN</kbd> 버튼으로 바꿉니다. 처음 설치하면 휴대폰 언어를 따라갑니다.</div>
+    </article>
+
+    <article class="topic" id="logout-delete">
+      <h3>3.6 로그아웃·계정 삭제 <span class="badge all">전체</span></h3>
+      <p class="purpose">계정에서 나가거나, 계정을 완전히 삭제합니다.</p>
+      <h4>로그아웃</h4>
+      <ol class="steps">
+        <li>☰ 메뉴 하단의 <kbd class="ui">로그아웃</kbd>을 누릅니다.</li>
+        <li>확인 창("로그아웃 하시겠습니까?")에서 <kbd class="ui">로그아웃</kbd>을 누릅니다. 자동 로그인도 함께 해제됩니다.</li>
+      </ol>
+      <h4>계정 삭제</h4>
+      <ol class="steps">
+        <li><b>설정</b> 화면 맨 아래 <b>계정 삭제</b> 섹션에서 <kbd class="ui">계정 삭제</kbd>를 누릅니다.</li>
+        <li>확인 창("정말 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")에서 <kbd class="ui">계정 삭제</kbd>를 누릅니다.</li>
+        <li>"계정이 삭제되었습니다." 확인 후 로그인 화면으로 돌아갑니다.</li>
+      </ol>
+      <div class="callout danger"><span class="ct">🚫 위험</span>계정을 삭제하면 <b>모든 데이터가 제거되며 복구할 수 없습니다.</b> 회사를 옮기거나 서비스를 완전히 그만둘 때만 사용하세요. 단순히 기기를 바꾸는 경우라면 로그아웃만 하면 됩니다.</div>
+    </article>
+  </section>
+
+  <!-- ======================= 4. 문제 생겼을 때 ======================= -->
+  <section class="chapter" id="ch4">
+    <h2>4. 문제 생겼을 때 | 긴급 신고와 문제 해결</h2>
+
+    <article class="topic" id="hazard">
+      <h3>4.1 위험원 보고 ★ <span class="badge menu">홈 &gt; 위험원 보고 카드</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">현장에서 발견한 위험 요소를 관리자에게 즉시 알립니다.</p>
+      <figure class="shot mobile"><img src="img/16-hazard-new.png" alt="위험원 보고" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 위험원 보고</div><figcaption>"위험원 보고" 작성 화면 (주황색 헤더)</figcaption></figure>
+      <ol class="steps">
+        <li>홈의 긴급 카드에서 <b>위험원 보고</b>(RISK, "탭하여 보고")를 탭합니다.</li>
+        <li><b>제목</b>과 <b>내용</b>에 위험 위치·상황을 구체적으로 적습니다. ("미조치 위험원이 있나요? 관리자에게 즉시 알립니다.")</li>
+        <li>현장 사진을 첨부합니다 (최대 3장 — 사진이 있으면 조치가 훨씬 빨라집니다).</li>
+        <li><kbd class="ui">등록</kbd>을 누릅니다. 건의사항 목록에 <b>[위험원]</b> 표시로 등록되고, 조치 이력을 추적할 수 있습니다 (<a href="#suggest-view">3.2</a>).</li>
+      </ol>
+    </article>
+
+    <article class="topic" id="sos">
+      <h3>4.2 긴급 SOS ★ <span class="badge menu">홈 &gt; SOS 카드</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">부상·조난 등 긴급 상황에서 관리자에게 구조 신호를 보냅니다.</p>
+      <figure class="shot mobile"><img src="img/17-sos.png" alt="긴급 SOS" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 긴급 SOS</div><figcaption>"긴급 SOS" — 사이렌·진동과 함께 전송</figcaption></figure>
+      <ol class="steps">
+        <li>홈의 긴급 카드에서 <b>SOS</b>를 탭합니다.</li>
+        <li>확인 창 <b>"긴급 SOS를 관리자에게 전송하시겠습니까?"</b>에서 <kbd class="ui">예, 전송합니다</kbd>를 누릅니다. (실수로 눌렀다면 <kbd class="ui">아니오</kbd>)</li>
+        <li>SOS 화면이 열리며 <b>사이렌 소리와 진동</b>이 울려 주변에 상황을 알립니다. "SOS 전송 중..." 상태가 표시됩니다.</li>
+        <li>상황이 정리되면 <kbd class="ui">SOS 종료</kbd>를 누릅니다 — 이때 관리자에게 신호가 전송되고 "SOS 전송 완료 — 관리자에게 긴급 신호가 전달되었습니다."와 전송 시각이 표시됩니다.</li>
+        <li><kbd class="ui">홈으로 돌아가기</kbd>로 복귀합니다.</li>
+      </ol>
+      <div class="callout danger"><span class="ct">🚨 중요</span>관리자에게는 <b>"[긴급 SOS] 현장에서 긴급 구조 요청이 발생했습니다. 즉시 확인 바랍니다."</b> 메시지가 전달되며, 웹 관리자 화면에서 최우선 알림으로 표시됩니다. 훈련·테스트 목적이라면 반드시 관리자와 사전에 협의하세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="stop">
+      <h3>4.3 작업 중지 요청 <span class="badge menu">홈 &gt; 작업 중지 요청 카드</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">위험해서 작업을 계속할 수 없을 때, 관리자에게 즉시 작업 중지를 요청합니다.</p>
+      <figure class="shot mobile"><img src="img/18-stop.png" alt="작업 중지 요청" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 작업 중지 요청</div><figcaption>"작업 중지 요청" — 사유 선택 + 사진 첨부</figcaption></figure>
+      <ol class="steps">
+        <li>홈의 긴급 카드에서 <b>작업 중지 요청</b>(STOP, "탭하여 요청")을 탭합니다.</li>
+        <li><b>사유</b>를 선택합니다 — "사유를 선택해 주세요"를 탭하면 목록이 열립니다 (예: "추락 위험: 안전벨트 미착용, 안전난간 부실" 등 24종). 맞는 항목이 없으면 <kbd class="ui">직접 입력</kbd>을 골라 사유를 적습니다.</li>
+        <li><b>상세 내용 (선택)</b>에 "관리자가 조치를 취할 수 있는 자세한 위치 및 내용"을 적습니다.</li>
+        <li>필요하면 <b>사진 첨부 (선택)</b> — 최대 3장.</li>
+        <li><kbd class="ui">작업 중지 요청 전송</kbd>을 누릅니다. "관리자에게 작업 중지 요청이 전달되었습니다." 확인 창이 뜹니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>전송된 요청은 건의사항 목록에서 조치 상태(미조치→조치중→조치 완료)를 추적할 수 있습니다. 관리자 웹에서는 ⚠️ 작업중지 최우선 알림으로 표시됩니다.</div>
+    </article>
+
+    <article class="topic" id="login-trouble">
+      <h3>4.4 로그인이 안 될 때 <span class="badge all">전체</span></h3>
+      <p class="purpose">로그인 화면 오류 메시지별 원인과 해결 방법입니다.</p>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>화면 메시지</th><th>원인과 해결</th></tr>
+        <tr><td>"아이디 또는 비밀번호가 올바르지 않습니다."</td><td>입력 오류. 대소문자·공백 확인 후 재시도. 이메일/비밀번호는 SafetyDesigner 계정과 동일 — 비밀번호를 잊었다면 Safetics 홈페이지에서 재설정.</td></tr>
+        <tr><td>"소속된 조직이 없습니다"</td><td>계정이 아직 조직에 등록되지 않음. 사내 관리자(Admin)에게 등록 요청.</td></tr>
+        <tr><td>"TBM 서비스 계약이 만료되었습니다"</td><td>회사의 TBM 계약 문제. 사내 담당자에게 문의.</td></tr>
+        <tr><td>"TBM 권한이 없습니다"</td><td>계정에 TBM 이용 권한이 없음. 관리자에게 권한 확인 요청.</td></tr>
+        <tr><td>"인증번호가 올바르지 않습니다"</td><td>인증번호 오타 또는 관리자가 번호를 갱신함. 현장 게시 최신 번호 확인.</td></tr>
+        <tr><td>"등록된 근로자를 찾을 수 없습니다"</td><td>이름·휴대폰 번호가 등록 정보와 다름. 관리자에게 등록 정보 확인 요청.</td></tr>
+        <tr><td>"본인 확인에 실패했습니다" / "생체인증 로그인에 실패했습니다."</td><td>지문·얼굴 인식 실패. 다시 시도하거나, 기기 변경 시 관리자에게 <b>인증 정보 초기화</b> 요청.</td></tr>
+        <tr><td>"인증이 만료되었습니다. 다시 로그인해주세요"</td><td>오랜만에 접속해 세션이 만료됨. 다시 로그인하면 됩니다.</td></tr>
+        <tr><td>"인터넷 연결을 확인해주세요"</td><td>네트워크 문제. Wi-Fi/데이터 연결 확인 후 재시도.</td></tr>
+      </tbody></table>
+      </div>
+    </article>
+
+    <article class="topic" id="geofence-trouble">
+      <h3>4.5 위치 인증(Geo-Fence)이 안 될 때 <span class="badge all">전체</span></h3>
+      <p class="purpose">위치 인증 실패 메시지별 대처 방법입니다.</p>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>화면 메시지</th><th>원인과 해결</th></tr>
+        <tr><td>"위치 권한이 필요합니다. 설정에서 위치 권한을 허용해 주세요."</td><td>앱 위치 권한 거부 상태. 휴대폰 설정 &gt; 앱 &gt; 권한에서 위치를 허용한 뒤 <kbd class="ui">다시 시도</kbd>.</td></tr>
+        <tr><td>"GPS 신호를 받을 수 없습니다. 실외에서 다시 시도해 주세요."</td><td>실내·지하 등 GPS 음영 지역. 하늘이 보이는 곳으로 이동 후 재시도.</td></tr>
+        <tr><td>"현장 반경 밖에 있습니다. (거리 m / 허용 m)"</td><td>현재 위치가 현장 GPS 반경 밖. 현장 안으로 이동 후 <kbd class="ui">다시 시도</kbd>. 현장 안인데도 반복되면 관리자에게 GPS 핀·반경 설정 확인을 요청하세요.</td></tr>
+        <tr><td>"현장 범위를 벗어났습니다"</td><td>제출 시점 위치 검증 실패. 위와 동일하게 현장 내에서 재시도.</td></tr>
+      </tbody></table>
+      </div>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>휴대폰에 위치 변조(가짜 GPS) 앱이 설치돼 있으면 인증이 거부될 수 있습니다.</div>
+    </article>
+  </section>
+
+  <!-- ======================= 부록 ======================= -->
+  <section class="chapter" id="appendix">
+    <h2>부록</h2>
+
+    <article class="topic" id="faq">
+      <h3>A. 자주 묻는 질문 (FAQ)</h3>
+      <dl class="term-grid">
+        <dt>Q. 오늘 TBM이 안 보여요.</dt>
+        <dd>A. ① 여러 현장 소속이라면 홈 상단 <b>현장 선택</b>이 맞는지 확인하세요. ② 관리자가 아직 발송하지 않았을 수 있습니다 — 발송 여부를 관리자에게 확인하세요. ③ "{시각}부터 참여할 수 있습니다"가 보이면 시작 시각 전입니다.</dd>
+        <dt>Q. "TBM 시작하기" 버튼이 안 눌러져요.</dt>
+        <dd>A. 시작 시각 전이면 버튼이 비활성화됩니다. 표시된 시각 이후에 다시 시도하세요.</dd>
+        <dt>Q. 체크리스트에서 실수로 "이슈 있음"을 눌렀어요.</dt>
+        <dd>A. 제출 전이라면 <kbd class="ui">이전</kbd>으로 돌아가 <kbd class="ui">확인하였음</kbd>으로 다시 응답하면 됩니다. 이미 제출했다면 관리자에게 알려주세요.</dd>
+        <dt>Q. 서명을 잘못 그렸어요.</dt>
+        <dd>A. 제출 전이라면 <kbd class="ui">다시 서명</kbd>으로 지우고 다시 서명하세요. <kbd class="ui">TBM 완료하기</kbd>를 누른 뒤에는 수정할 수 없습니다.</dd>
+        <dt>Q. 이미 참여했는데 또 하라고 나와요 / "이미 참여 완료된 TBM입니다"가 떠요.</dt>
+        <dd>A. 이미 완료된 TBM은 다시 참여할 수 없습니다. 목록에서 상태가 <b>완료</b>인지 확인하세요. 화면이 이전 상태로 보이면 목록을 아래로 당겨 새로고침하세요.</dd>
+        <dt>Q. 인증번호가 안 돼요. (외부 근로자)</dt>
+        <dd>A. 관리자가 인증번호를 갱신하면 이전 번호는 무효가 됩니다. 현장에 게시된 최신 번호를 확인하고, 이름·휴대폰 번호가 등록 정보와 같은지 확인하세요.</dd>
+        <dt>Q. 파견 초대가 안 보여요.</dt>
+        <dd>A. 초대는 로그인 직후 홈 모달과 <b>설정 &gt; 파견 초대</b> 섹션에 표시됩니다. 안 보이면 초대가 취소·만료됐을 수 있으니 초대한 쪽 관리자에게 상태를 확인해 달라고 하세요.</dd>
+        <dt>Q. Push 알림이 안 와요.</dt>
+        <dd>A. ① 설정 화면의 <kbd class="ui">App Push 알림 받기</kbd>·<kbd class="ui">TBM 등록 알림 받기</kbd> 토글 확인. ② 휴대폰 설정 &gt; 알림에서 이 앱의 알림 허용 확인. ③ 그래도 안 오면 로그아웃 후 다시 로그인하세요.</dd>
+        <dt>Q. 휴대폰을 바꿨어요.</dt>
+        <dd>A. 새 기기에서 다시 로그인하면 됩니다. 생체인증은 새 기기에서 다시 등록하세요. 외부 근로자가 본인 확인(생체/PIN)에 계속 실패하면 관리자에게 <b>인증 정보 초기화</b>를 요청하세요.</dd>
+      </dl>
+    </article>
+
+    <article class="topic pdf-break" id="appendix-perm">
+      <h3>B. 이용자 유형별 기능표</h3>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>기능</th><th><span class="badge manager">정규직</span></th><th><span class="badge temp">외부 근로자</span></th><th>비고</th></tr>
+        <tr><td>로그인 방식</td><td>아이디(이메일)·비밀번호</td><td>인증번호 + 이름 + 휴대폰 번호</td><td></td></tr>
+        <tr><td>자동 로그인 (로그인 상태 유지)</td><td class="ok">O</td><td class="no">X</td><td>외부 근로자는 매번 로그인</td></tr>
+        <tr><td>생체인증</td><td class="ok">선택 (등록 권장)</td><td class="ok">필수 (없으면 PIN)</td><td>매 로그인 본인 확인</td></tr>
+        <tr><td>TBM 참여 (체크리스트·서명·위치 인증)</td><td class="ok">O</td><td class="ok">O</td><td>동일</td></tr>
+        <tr><td>TBM 기록 확인</td><td class="ok">O</td><td class="ok">O</td><td></td></tr>
+        <tr><td>위험원 보고 / SOS / 작업 중지</td><td class="ok">O</td><td class="ok">O</td><td>동일</td></tr>
+        <tr><td>건의사항 작성·답글</td><td class="ok">O</td><td class="ok">O</td><td></td></tr>
+        <tr><td>현장 선택 (다중 현장)</td><td class="ok">O</td><td class="no">X</td><td>외부 근로자는 인증번호 현장 고정</td></tr>
+        <tr><td>파견 초대 수락/거절</td><td class="ok">O</td><td class="no">X</td><td>파견은 정규 계정 대상</td></tr>
+        <tr><td>알림 설정 / 언어 변경</td><td class="ok">O</td><td class="ok">O</td><td></td></tr>
+        <tr><td>관리자 웹 접속 (TBM 발송·조치)</td><td class="no">X*</td><td class="no">X</td><td>*Admin/Manager 권한 보유자만 웹 이용</td></tr>
+      </tbody></table>
+      </div>
+      <p style="margin-top:10px; color:var(--ink-soft); font-size:13.5px">TBM 발송·참여 현황 관리·민원 조치는 관리자 웹에서 합니다. 이 앱은 참여와 신고 전용입니다 (<a href="#concepts">0장 참고</a>).</p>
+    </article>
+
+    <article class="topic pdf-break" id="appendix-terms">
+      <h3>C. 용어집</h3>
+      <dl class="term-grid">
+        <dt>TBM (Tool Box Meeting)</dt><dd>작업 전 실시하는 단시간 안전 미팅. 관리자 웹에서 발송하고, 이 앱에서 체크리스트·서명으로 참여합니다.</dd>
+        <dt>체크리스트</dt><dd>TBM 1건의 확인 항목 묶음. 주의사항 / 개인안전보호구(PPE) / 오늘의 특별 공지로 구성.</dd>
+        <dt>주의사항</dt><dd>오늘 작업에서 지켜야 할 안전 확인 항목. 위험인자·유해요인 태그가 붙을 수 있습니다.</dd>
+        <dt>개인안전보호구 (PPE)</dt><dd>안전모·안전화·보안경 등 개인 보호 장비 착용 확인 항목.</dd>
+        <dt>오늘의 특별 공지</dt><dd>관리자가 그날 특별히 전달하는 공지 (예: 우천 시 주의사항).</dd>
+        <dt>확인하였음 / 이슈 있음</dt><dd>체크리스트 항목별 응답. "이슈 있음"은 관리자에게 TBM 이슈로 자동 접수됩니다.</dd>
+        <dt>위치 인증 (Geo-Fence)</dt><dd>현장 GPS 핀 + 반경으로 만든 가상 울타리 안에 있는지 확인하는 서명 방식.</dd>
+        <dt>자필 서명</dt><dd>화면에 손가락으로 직접 서명하는 참여 확인 방식.</dd>
+        <dt>인증번호</dt><dd>외부 근로자가 로그인할 때 입력하는 공장(현장)별 코드. 관리자가 발급·갱신해 현장에 게시합니다.</dd>
+        <dt>외부 근로자 (일용직)</dt><dd>정식 계정 없이 인증번호 + 이름 + 휴대폰 번호로 참여하는 근로자.</dd>
+        <dt>파견</dt><dd>다른 조직 현장의 TBM 대상으로 초대받는 것. 수락하면 현장 선택 목록에 "파견" 배지와 함께 추가됩니다.</dd>
+        <dt>건의사항</dt><dd>위험원 보고·작업 중지·SOS·건의·TBM 이슈가 모이는 소통 창구. 조치 이력(답글)로 진행 상황을 추적합니다.</dd>
+        <dt>위험원</dt><dd>현장에서 발견한 위험 요소. "위험원 보고"로 관리자에게 신고합니다.</dd>
+        <dt>조치 이력</dt><dd>건의·신고에 대한 관리자·작성자의 답글과 상태 변경 기록.</dd>
+        <dt>현장 / 사업장 / 공장</dt><dd>조직 단위. 화면에 따라 "현장", "사업장", "공장"으로 표시되며 대체로 같은 단위를 가리킵니다.</dd>
+      </dl>
+    </article>
+
+    <article class="topic pdf-break" id="appendix-errors">
+      <h3>D. 오류 메시지 사전</h3>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>메시지</th><th>원인</th><th>해결</th></tr>
+        <tr><td>"아이디 또는 비밀번호가 올바르지 않습니다."</td><td>로그인 정보 오류</td><td>재입력. 반복되면 SafetyDesigner 비밀번호 재설정.</td></tr>
+        <tr><td>"소속된 조직이 없습니다"</td><td>계정이 조직 미등록</td><td>사내 Admin에게 등록 요청.</td></tr>
+        <tr><td>"TBM 서비스 계약이 만료되었습니다"</td><td>회사 계약 문제</td><td>사내 담당자 문의.</td></tr>
+        <tr><td>"TBM 권한이 없습니다"</td><td>계정에 TBM 권한 없음</td><td>관리자에게 권한 확인 요청.</td></tr>
+        <tr><td>"인증번호가 올바르지 않습니다"</td><td>번호 오타 또는 갱신됨</td><td>현장 게시 최신 번호 확인.</td></tr>
+        <tr><td>"등록된 근로자를 찾을 수 없습니다"</td><td>이름·휴대폰 번호 불일치</td><td>관리자에게 등록 정보 확인.</td></tr>
+        <tr><td>"인증이 만료되었습니다. 다시 로그인해주세요"</td><td>세션 만료</td><td>다시 로그인.</td></tr>
+        <tr><td>"본인 확인에 실패했습니다" / "PIN 확인에 실패했습니다"</td><td>생체인증/PIN 실패</td><td>재시도. 반복 시 관리자에게 인증 정보 초기화 요청.</td></tr>
+        <tr><td>"TBM 세션을 찾을 수 없습니다"</td><td>삭제됐거나 잘못된 접근</td><td>목록 새로고침 후 다시 진입.</td></tr>
+        <tr><td>"이미 참여 완료된 TBM입니다"</td><td>중복 참여 시도</td><td>참여 완료 상태 — 추가 조치 불필요.</td></tr>
+        <tr><td>"현장 범위를 벗어났습니다" / "현장 반경 밖에 있습니다. (거리/허용)"</td><td>위치 인증 실패</td><td>현장 안으로 이동 후 다시 시도 (<a href="#geofence-trouble">4.5</a>).</td></tr>
+        <tr><td>"위치 권한이 필요합니다. 설정에서 위치 권한을 허용해 주세요."</td><td>위치 권한 거부</td><td>휴대폰 설정에서 위치 권한 허용.</td></tr>
+        <tr><td>"GPS 신호를 받을 수 없습니다. 실외에서 다시 시도해 주세요."</td><td>GPS 음영 지역</td><td>실외 이동 후 재시도.</td></tr>
+        <tr><td>"서명 전송 실패 — 서명 이미지를 업로드하지 못했습니다..."</td><td>네트워크 불안정</td><td>연결 확인 후 다시 <kbd class="ui">TBM 완료하기</kbd>.</td></tr>
+        <tr><td>"이미 보고된 이슈입니다"</td><td>같은 항목 이슈 중복 보고</td><td>이미 접수됨 — 추가 조치 불필요.</td></tr>
+        <tr><td>"민원 등록에 실패했습니다"</td><td>일시적 오류/네트워크</td><td>연결 확인 후 재시도.</td></tr>
+        <tr><td>"인터넷 연결을 확인해주세요"</td><td>오프라인</td><td>Wi-Fi/데이터 연결 후 재시도.</td></tr>
+        <tr><td>"날씨 정보를 가져오지 못했습니다."</td><td>날씨 조회 실패</td><td>날씨 카드의 새로고침 버튼. 기능 이용에는 지장 없음.</td></tr>
+        <tr><td>"처리에 실패했습니다"</td><td>일시적 오류</td><td>재시도. 반복되면 문의 채널로 화면 캡처와 함께 신고.</td></tr>
+      </tbody></table>
+      </div>
+    </article>
+  </section>
+
+  <!-- manual-version: 1.00 -->
+  <footer class="doc-foot">
+    TBM 앱 사용 설명서 · <span id="docVersion">문서 버전 1.00</span> · 문서에 없는 문제는 사내 문의 채널로 화면 캡처와 함께 알려주세요.<br>
+    빌드(공유용 최종본): 이 폴더에서 <code>node tools/build.mjs</code> → <code>TBM_앱_사용설명서_v{버전}.html</code> 생성.
+  </footer>
+</main>
+
+<div id="pbOverlay" hidden contenteditable="false">
+  <div id="pbModal">
+    <div class="pb-head">
+      <h3>⚙ PDF 페이지 전환 설정</h3>
+      <p class="pb-desc">체크한 항목은 PDF 저장/인쇄 시 <b>새 페이지에서 시작</b>합니다.
+      각 장(0~4, 부록)은 항상 새 페이지에서 시작하며, 이 설정은 <b>화면 표시에는 영향이 없습니다</b>.</p>
+    </div>
+    <div id="pbList"></div>
+    <div class="pb-foot">
+      <span class="pb-hint">변경은 즉시 적용됩니다. 파일에 영구 저장하려면 편집 모드에서 저장하세요.</span>
+      <button id="pbClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var box = document.getElementById('searchBox');
+  var items = Array.prototype.slice.call(document.querySelectorAll('.nav-item'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.nav-group'));
+  var noResult = document.getElementById('noResult');
+
+  // 검색: 메뉴명 + data-kw + 해당 섹션 본문 텍스트까지 검색
+  var contentCache = {};
+  items.forEach(function (it) {
+    var id = it.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    contentCache[id] = (it.textContent + ' ' + (it.dataset.kw || '') + ' ' + (el ? el.textContent : '')).toLowerCase();
+  });
+
+  box.addEventListener('input', function () {
+    var q = box.value.trim().toLowerCase();
+    var any = false;
+    items.forEach(function (it) {
+      var id = it.getAttribute('href').slice(1);
+      var hit = !q || contentCache[id].indexOf(q) !== -1;
+      it.classList.toggle('hidden', !hit);
+      if (hit) any = true;
+    });
+    groups.forEach(function (g) {
+      var visible = g.querySelectorAll('.nav-item:not(.hidden)').length > 0;
+      g.classList.toggle('hidden', !visible);
+    });
+    noResult.style.display = any ? 'none' : 'block';
+  });
+
+  // 스크롤 시 현재 섹션 하이라이트
+  var topics = Array.prototype.slice.call(document.querySelectorAll('article.topic'));
+  function onScroll() {
+    var y = window.scrollY + 100;
+    var current = null;
+    topics.forEach(function (t) { if (t.offsetTop <= y) current = t.id; });
+    items.forEach(function (it) {
+      it.classList.toggle('active', it.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // 모바일: 메뉴 클릭 시 사이드바 닫기
+  items.forEach(function (it) {
+    it.addEventListener('click', function () {
+      document.getElementById('sidebar').classList.remove('open');
+    });
+  });
+
+  // ---------- PDF 페이지 전환 설정 모달 ----------
+  var pbOverlay = document.getElementById('pbOverlay');
+  var pbBtn = document.getElementById('pbSettingsBtn');
+  if (pbOverlay && pbBtn) {
+    function articleTitle(article) {
+      var h3 = article.querySelector('h3');
+      if (!h3) return article.id;
+      var clone = h3.cloneNode(true);
+      Array.prototype.forEach.call(clone.querySelectorAll('.badge'), function (b) { b.remove(); });
+      return clone.textContent.replace(/\s+/g, ' ').trim();
+    }
+    function buildPbList() {
+      var list = document.getElementById('pbList');
+      list.innerHTML = '';
+      Array.prototype.forEach.call(document.querySelectorAll('section.chapter'), function (sec) {
+        var h2 = sec.querySelector('h2');
+        var group = document.createElement('div');
+        group.className = 'pb-chapter';
+        group.textContent = h2 ? h2.textContent.trim() : '';
+        list.appendChild(group);
+        Array.prototype.forEach.call(sec.querySelectorAll('article.topic'), function (article) {
+          var row = document.createElement('label');
+          row.className = 'pb-row';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = article.classList.contains('pdf-break');
+          cb.addEventListener('change', function () {
+            article.classList.toggle('pdf-break', cb.checked);
+            // 숨김 편집 모드가 켜져 있으면 변경 사항으로 표시되도록 알림
+            try { document.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+          });
+          var span = document.createElement('span');
+          span.textContent = articleTitle(article);
+          row.appendChild(cb);
+          row.appendChild(span);
+          list.appendChild(row);
+        });
+      });
+    }
+    pbBtn.addEventListener('click', function () {
+      buildPbList();
+      pbOverlay.hidden = false;
+    });
+    document.getElementById('pbClose').addEventListener('click', function () { pbOverlay.hidden = true; });
+    pbOverlay.addEventListener('click', function (e) { if (e.target === pbOverlay) pbOverlay.hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pbOverlay.hidden) pbOverlay.hidden = true; });
+  }
+})();
+</script>
+</body></html>

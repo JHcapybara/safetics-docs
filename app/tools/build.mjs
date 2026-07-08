@@ -1,0 +1,409 @@
+﻿/**
+ * 매뉴얼 단일 파일 빌드
+ *
+ * docs/TBM-Admin-manual/index.html 의 이미지(img/*.png)를 base64 data URI로 내장해
+ * 버전이 파일명에 포함된 단일 파일(TBM_사용설명서_v{버전}.html)을 생성한다.
+ * 버전은 index.html 안의 <!-- manual-version: X.XX --> 주석에서 읽는다.
+ * 결과물은 파일 하나만 공유하면 어디서든 열린다 (img 폴더 불필요).
+ *
+ * 추가 기능(빌드 시 자동 내장):
+ *  - 숨김 편집기: S+F+T 키를 누른 채 "PDF로 저장/인쇄" 버튼 왼쪽의 보이지 않는
+ *    버튼을 3번 연속 클릭하면 편집 모드로 전환. 저장 시 버전 자동 +0.01,
+ *    새 버전 파일명으로 저장 제안. 편집 UI는 저장본에 포함되지 않음.
+ *  - 각 이미지에 data-src="img/..." 원본 경로를 심어 역방향 가져오기
+ *    (npm run manual:import) 시 index.html로 복원 가능.
+ *
+ * 사용법: npm run manual:build
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 이 스크립트(tools/) 기준 상위 폴더 = 매뉴얼 폴더. 어디서 실행해도 동작.
+const MANUAL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const SRC = path.join(MANUAL_DIR, 'index.html');
+
+const html = fs.readFileSync(SRC, 'utf8');
+
+const verMatch = html.match(/manual-version:\s*([\d.]+)/);
+if (!verMatch) {
+  console.error('오류: index.html에서 <!-- manual-version: X.XX --> 주석을 찾지 못했습니다.');
+  process.exit(1);
+}
+const VERSION = verMatch[1];
+const OUT = path.join(MANUAL_DIR, `TBM_앱_사용설명서_v${VERSION}.html`);
+
+// ---------------------------------------------------------------- 이미지 내장
+let embedded = 0;
+const missing = [];
+
+let result = html.replace(/src="(img\/[^"]+\.(png|jpg|jpeg|gif|webp))"/gi, (m, rel, ext) => {
+  const file = path.join(MANUAL_DIR, rel);
+  if (!fs.existsSync(file)) {
+    missing.push(rel);
+    return m;
+  }
+  const mime = ext.toLowerCase() === 'jpg' ? 'jpeg' : ext.toLowerCase();
+  const b64 = fs.readFileSync(file).toString('base64');
+  embedded++;
+  // data-src: 역방향 가져오기(manual:import)용 원본 경로
+  return `src="data:image/${mime};base64,${b64}" data-src="${rel}"`;
+});
+
+// ---------------------------------------------------------------- 숨김 편집기 주입
+// 주의: 아래 코드는 최종본 안에서 실행된다. 편집 UI 요소는 전부 class "__he"로
+// 마킹되어 저장(직렬화) 시 제거된다. 이 부트 스크립트 자체(id="__he_boot")는
+// 저장본에 유지되어 다음에도 숨김 편집이 가능하다.
+const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
+(function () {
+  'use strict';
+  var editing = false, dirty = false, bumped = false;
+  var fileHandle = null, savedRange = null, curVersion = null;
+  var held = {}, clicks = 0, lastClick = 0;
+
+  var COLORS = ['#1f2733', '#1f5eff', '#cf1322', '#d46b08', '#389e0d', '#8a94a3'];
+  var SIZES = [12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 28];
+
+  // ---------- 공용 ----------
+  function toast(msg) {
+    var t = document.getElementById('__he_toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = '__he_toast';
+      t.className = '__he';
+      t.setAttribute('contenteditable', 'false');
+      t.style.cssText = 'position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#16213a;color:#fff;padding:10px 20px;border-radius:999px;font-size:13.5px;z-index:99;max-width:80vw;transition:opacity .25s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._t);
+    t._t = setTimeout(function () { t.style.opacity = '0'; }, 2800);
+  }
+  function setDirty(v) {
+    dirty = v;
+    var d = document.getElementById('__he_dirty');
+    if (d) d.style.display = v ? 'inline-block' : 'none';
+  }
+  function download(text, name) {
+    // designMode 문서에서는 앵커 클릭의 기본 동작(다운로드)이 막힌다.
+    // 해제 직후 동기 클릭도 막히므로, 한 틱 쉰 뒤 클릭하고 다시 켠다.
+    var wasEditing = document.designMode === 'on';
+    if (wasEditing) document.designMode = 'off';
+    setTimeout(function () {
+      var blob = new Blob([text], { type: 'text/html;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      if (wasEditing) document.designMode = 'on';
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }, 120);
+  }
+
+  // ---------- 숨김 트리거: S+F+T 누른 채 투명 버튼 3연속 클릭 ----------
+  document.addEventListener('keydown', function (e) { if (e.key) held[e.key.toLowerCase()] = true; });
+  document.addEventListener('keyup', function (e) { if (e.key) delete held[e.key.toLowerCase()]; });
+  window.addEventListener('blur', function () { held = {}; clicks = 0; });
+
+  function makeTrigger() {
+    if (document.getElementById('__he_trigger')) return;
+    // "⚙ PDF 페이지 설정" 버튼 왼쪽에 배치 (없으면 인쇄 버튼 왼쪽)
+    var printBtn = document.getElementById('pbSettingsBtn') || document.querySelector('.topbar button[onclick*="print"]');
+    if (!printBtn) return;
+    var b = document.createElement('button');
+    b.id = '__he_trigger';
+    b.className = '__he';
+    b.type = 'button';
+    b.setAttribute('aria-hidden', 'true');
+    b.tabIndex = -1;
+    b.style.cssText = 'width:44px;height:32px;background:transparent;border:none;cursor:default;padding:0;opacity:0;';
+    b.addEventListener('click', function () {
+      if (!(held['s'] && held['f'] && held['t'])) { clicks = 0; return; }
+      var now = Date.now();
+      if (now - lastClick > 1500) clicks = 0;
+      lastClick = now;
+      clicks++;
+      if (clicks >= 3) { clicks = 0; enterEdit(); }
+    });
+    printBtn.parentNode.insertBefore(b, printBtn);
+  }
+
+  // ---------- 편집 모드 ----------
+  function injectStyle() {
+    if (document.getElementById('__he_style')) return;
+    var s = document.createElement('style');
+    s.id = '__he_style';
+    s.className = '__he';
+    s.textContent =
+      '#__he_bar{position:fixed;top:56px;left:0;right:0;z-index:50;display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#16213a;padding:7px 14px;border-bottom:1px solid #2a3a60;}' +
+      '#__he_bar .hlab{color:#8fa0c5;font-size:12px;margin-right:2px;}' +
+      '#__he_bar select,#__he_bar input{background:#223052;color:#fff;border:1px solid #3a4a75;border-radius:6px;padding:4px 6px;font-size:12.5px;outline:none;}' +
+      '#__he_bar input{width:130px;}' +
+      '#__he_bar button{background:#223052;color:#fff;border:1px solid #3a4a75;border-radius:6px;min-width:30px;height:28px;font-size:13px;cursor:pointer;padding:0 8px;}' +
+      '#__he_bar button:hover{background:#2e3f68;}' +
+      '#__he_bar button.hprimary{background:#1f5eff;border-color:#1f5eff;font-weight:700;}' +
+      '#__he_bar .hsep{width:1px;height:20px;background:#3a4a75;}' +
+      '#__he_bar .hsw{width:19px;height:19px;border-radius:50%;min-width:0;padding:0;border:2px solid rgba(255,255,255,.35);}' +
+      '#__he_bar .hsw:hover{border-color:#fff;transform:scale(1.15);}' +
+      '#__he_bar .hdirty{width:10px;height:10px;border-radius:50%;background:#ffb020;display:none;}' +
+      'body.__he-editing{padding-top:48px;}' +
+      'body.__he-editing .sidebar{top:104px;}';
+    document.head.appendChild(s);
+  }
+
+  function buildToolbar() {
+    if (document.getElementById('__he_bar')) return;
+    var bar = document.createElement('div');
+    bar.id = '__he_bar';
+    bar.className = '__he';
+    // designMode 문서 안에서 툴바가 "편집 대상"이 되지 않도록 비편집 섬으로 지정
+    // (이게 없으면 버튼 클릭이 커서 이동으로 먹혀서 동작하지 않음)
+    bar.setAttribute('contenteditable', 'false');
+    var sizeOpts = '<option value="">크기</option>';
+    for (var i = 0; i < SIZES.length; i++) sizeOpts += '<option value="' + SIZES[i] + '">' + SIZES[i] + 'px</option>';
+    var swatches = '';
+    for (var j = 0; j < COLORS.length; j++) swatches += '<button type="button" class="hsw" data-color="' + COLORS[j] + '" style="background:' + COLORS[j] + '"></button>';
+    bar.innerHTML =
+      '<span class="hlab">✏️ 숨김 편집</span>' +
+      '<select id="__he_block"><option value="">문단 종류</option><option value="h4">제목</option><option value="p">본문</option><option value="note">주석 (작은 회색 글)</option></select>' +
+      '<select id="__he_size">' + sizeOpts + '</select>' +
+      '<span class="hsep"></span>' +
+      '<button type="button" id="__he_bold"><b>B</b></button>' +
+      '<span class="hsep"></span>' + swatches +
+      '<span class="hsep"></span>' +
+      '<button type="button" id="__he_clear">지우기</button>' +
+      '<span class="hsep"></span>' +
+      '<input id="__he_find" placeholder="찾을 용어"> → <input id="__he_repl" placeholder="바꿀 용어">' +
+      '<button type="button" id="__he_doRepl">전체 치환</button>' +
+      '<span style="flex:1"></span>' +
+      '<span class="hdirty" id="__he_dirty" title="저장하지 않은 변경"></span>' +
+      '<button type="button" id="__he_save" class="hprimary">💾 저장 (Ctrl+S)</button>' +
+      '<button type="button" id="__he_exit">편집 종료</button>';
+    document.body.appendChild(bar);
+
+    bar.addEventListener('mousedown', function (e) {
+      if (e.target.closest('button')) e.preventDefault();
+    });
+    document.getElementById('__he_bold').addEventListener('click', function () { exec('bold'); });
+    document.getElementById('__he_clear').addEventListener('click', function () { exec('removeFormat'); });
+    Array.prototype.forEach.call(bar.querySelectorAll('.hsw'), function (sw) {
+      sw.addEventListener('click', function () { exec('foreColor', sw.getAttribute('data-color')); });
+    });
+    document.getElementById('__he_block').addEventListener('change', function () {
+      var v = this.value; this.value = '';
+      if (!v) return;
+      if (v === 'note') {
+        exec('formatBlock', 'p');
+        var el = currentBlock();
+        if (el) { el.style.color = '#8a94a3'; el.style.fontSize = '13px'; setDirty(true); }
+      } else {
+        var el2 = currentBlock();
+        if (el2) { el2.style.color = ''; el2.style.fontSize = ''; }
+        exec('formatBlock', v);
+      }
+    });
+    document.getElementById('__he_size').addEventListener('change', function () {
+      var v = this.value;
+      if (!v) return;
+      applyFontSizePx(parseInt(v, 10));
+    });
+    document.getElementById('__he_doRepl').addEventListener('click', function () {
+      var find = document.getElementById('__he_find').value;
+      var repl = document.getElementById('__he_repl').value;
+      if (!find) { toast('찾을 용어를 입력하세요.'); return; }
+      var n = replaceAll(find, repl);
+      if (n > 0) setDirty(true);
+      toast(n > 0 ? '"' + find + '" → "' + repl + '" ' + n + '곳 치환했습니다.' : '찾지 못했습니다.');
+    });
+    document.getElementById('__he_save').addEventListener('click', save);
+    document.getElementById('__he_exit').addEventListener('click', exitEdit);
+  }
+
+  function enterEdit() {
+    if (editing) return;
+    editing = true;
+    document.designMode = 'on';
+    try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
+    injectStyle();
+    buildToolbar();
+    document.body.classList.add('__he-editing');
+    toast('편집 모드 — 문장을 클릭해 수정, 실수는 Ctrl+Z, 저장은 Ctrl+S');
+  }
+
+  function exitEdit() {
+    if (dirty && !confirm('저장하지 않은 변경이 있습니다. 편집을 종료할까요?')) return;
+    editing = false;
+    dirty = false;
+    document.designMode = 'off';
+    document.body.classList.remove('__he-editing');
+    var bar = document.getElementById('__he_bar');
+    if (bar) bar.remove();
+    var st = document.getElementById('__he_style');
+    if (st) st.remove();
+    toast('보기 모드로 돌아왔습니다.');
+  }
+
+  // ---------- 서식 명령 ----------
+  function keepRange() {
+    var sel = document.getSelection();
+    if (sel && sel.rangeCount && document.body.contains(sel.anchorNode) && !(sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement).closest('#__he_bar')) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+      refreshSize(sel);
+    }
+  }
+  function refreshSize(sel) {
+    var el = sel.anchorNode ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement) : null;
+    var szSel = document.getElementById('__he_size');
+    if (!el || !szSel) return;
+    var px = Math.round(parseFloat(getComputedStyle(el).fontSize));
+    var has = false;
+    for (var i = 0; i < szSel.options.length; i++) if (szSel.options[i].value === String(px)) has = true;
+    if (has) { szSel.value = String(px); szSel.options[0].textContent = '크기'; }
+    else { szSel.options[0].textContent = px + 'px'; szSel.value = ''; }
+  }
+  document.addEventListener('selectionchange', function () { if (editing) keepRange(); });
+
+  function exec(cmd, val) {
+    var sel = document.getSelection();
+    if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
+    try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
+    document.execCommand(cmd, false, val || null);
+    setDirty(true);
+    if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+  }
+  function currentBlock() {
+    var sel = document.getSelection();
+    var n = sel && sel.anchorNode;
+    if (!n) return null;
+    var el = n.nodeType === 1 ? n : n.parentElement;
+    return el ? el.closest('p,h1,h2,h3,h4,h5,h6,li,dt,dd,figcaption') : null;
+  }
+  function applyFontSizePx(px) {
+    var sel = document.getSelection();
+    if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
+    if (!sel.rangeCount) return;
+    if (sel.isCollapsed) {
+      var blk = currentBlock();
+      if (blk) { blk.style.fontSize = px + 'px'; setDirty(true); }
+    } else {
+      try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
+      document.execCommand('fontSize', false, '7');
+      Array.prototype.forEach.call(document.querySelectorAll('font[size="7"]'), function (f) {
+        var s = document.createElement('span');
+        s.style.fontSize = px + 'px';
+        while (f.firstChild) s.appendChild(f.firstChild);
+        f.parentNode.replaceChild(s, f);
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('span[style*="xxx-large"]'), function (s) {
+        s.style.fontSize = px + 'px';
+      });
+      setDirty(true);
+      if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+  function replaceAll(find, repl) {
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    var count = 0;
+    nodes.forEach(function (t) {
+      var p = t.parentElement;
+      if (p && p.closest('script,style,#__he_bar,#__he_toast')) return;
+      if (t.nodeValue.indexOf(find) === -1) return;
+      count += t.nodeValue.split(find).length - 1;
+      t.nodeValue = t.nodeValue.split(find).join(repl);
+    });
+    return count;
+  }
+
+  // ---------- 버전 / 직렬화 / 저장 ----------
+  function readVersion() {
+    var span = document.getElementById('docVersion');
+    if (span) {
+      var m = span.textContent.match(/([\d.]+)/);
+      if (m) return m[1];
+    }
+    return '1.00';
+  }
+  function bumpVersionOnce() {
+    if (bumped) return curVersion;
+    var v = (Math.round((parseFloat(readVersion()) + 0.01) * 100) / 100).toFixed(2);
+    var span = document.getElementById('docVersion');
+    if (span) span.textContent = '문서 버전 ' + v;
+    var walker = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_COMMENT, null);
+    while (walker.nextNode()) {
+      if (walker.currentNode.nodeValue.indexOf('manual-version') !== -1) {
+        walker.currentNode.nodeValue = ' manual-version: ' + v + ' ';
+      }
+    }
+    bumped = true;
+    curVersion = v;
+    return v;
+  }
+  function serialize() {
+    var clone = document.documentElement.cloneNode(true);
+    Array.prototype.forEach.call(clone.querySelectorAll('.__he'), function (el) { el.remove(); });
+    var body = clone.querySelector('body');
+    if (body) body.classList.remove('__he-editing');
+    return '<!DOCTYPE html>\n' + clone.outerHTML;
+  }
+  async function save() {
+    if (!editing) return;
+    var ver = bumpVersionOnce();
+    var html = serialize();
+    var name = 'TBM_앱_사용설명서_v' + ver + '.html';
+    if (window.showSaveFilePicker) {
+      try {
+        if (!fileHandle) {
+          fileHandle = await window.showSaveFilePicker({
+            id: 'tbm-manual-standalone',
+            suggestedName: name,
+            types: [{ description: 'HTML 문서', accept: { 'text/html': ['.html'] } }]
+          });
+        }
+        var w = await fileHandle.createWritable();
+        await w.write(html);
+        await w.close();
+        setDirty(false);
+        toast('💾 저장 완료 (v' + ver + ')');
+      } catch (e) {
+        if (e && e.name !== 'AbortError') toast('저장 실패: ' + e.message);
+      }
+    } else {
+      download(html, name);
+      setDirty(false);
+      toast('⬇ 수정본 다운로드 (v' + ver + ')');
+    }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (editing && (e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      save();
+    }
+  });
+  window.addEventListener('beforeunload', function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+  document.addEventListener('input', function (e) {
+    if (editing && !(e.target && e.target.closest && e.target.closest('#__he_bar'))) setDirty(true);
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', makeTrigger);
+  else makeTrigger();
+})();
+</script>`;
+
+result = result.replace('</body>', HIDDEN_EDITOR + '\n</body>');
+
+fs.writeFileSync(OUT, result, 'utf8');
+// 구버전 명명 규칙 잔재 정리
+const legacy = path.join(MANUAL_DIR, 'index.standalone.html');
+if (fs.existsSync(legacy)) fs.unlinkSync(legacy);
+
+const kb = Math.round(fs.statSync(OUT).size / 1024);
+console.log(`완료: ${OUT} (v${VERSION})`);
+console.log(`이미지 ${embedded}개 내장, 숨김 편집기 포함, 용량 ${kb}KB${missing.length ? ` | 누락: ${missing.join(', ')}` : ''}`);
