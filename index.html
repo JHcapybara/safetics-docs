@@ -37,6 +37,15 @@
   .card .cta { margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--brand); }
   .card.soon { opacity: .6; cursor: not-allowed; }
   .card.soon .cta { color: var(--ink-soft); }
+  .card-wrap { display: flex; flex-direction: column; }
+  .card-wrap .card { flex: 1; }
+  .alt-link {
+    display: block; text-align: center; margin-top: 8px; font-size: 12.5px; font-weight: 600;
+    color: var(--ink-soft); text-decoration: none; padding: 7px 10px; border: 1px dashed var(--line);
+    border-radius: 10px; transition: color .12s, border-color .12s;
+  }
+  .alt-link:hover { color: var(--brand); border-color: var(--brand); }
+  .alt-link .mini { font-weight: 400; opacity: .8; }
   .tag {
     display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
     margin-left: 8px; vertical-align: middle;
@@ -54,19 +63,25 @@
   </header>
 
   <div class="cards">
-    <a class="card" href="admin/index.html">
-      <div class="ico">🖥️</div>
-      <h2>TBM 관리자 <span class="tag live">공개</span></h2>
-      <div class="desc">TBM(Tool Box Meeting) 관리자 웹 사용 설명서. 발송·양식·근로자·민원·설정.</div>
-      <div class="cta">매뉴얼 열기 →</div>
-    </a>
+    <div class="card-wrap">
+      <a class="card" href="admin/index.html">
+        <div class="ico">🖥️</div>
+        <h2>TBM 관리자 <span class="tag live">공개</span></h2>
+        <div class="desc">TBM(Tool Box Meeting) 관리자 웹 사용 설명서. 발송·양식·근로자·민원·설정.</div>
+        <div class="cta">매뉴얼 열기 →</div>
+      </a>
+      <a class="alt-link" href="admin/latest.html">📄 최종본(편집기 포함) 보기 <span class="mini">· 단일 HTML 파일</span></a>
+    </div>
 
-    <a class="card" href="app/index.html">
-      <div class="ico">📱</div>
-      <h2>TBM 앱 <span class="tag live">공개</span></h2>
-      <div class="desc">TBM 모바일 앱(근로자용) 사용 설명서. 로그인·현장 선택·TBM 참여·서명·위험 신고·SOS.</div>
-      <div class="cta">매뉴얼 열기 →</div>
-    </a>
+    <div class="card-wrap">
+      <a class="card" href="app/index.html">
+        <div class="ico">📱</div>
+        <h2>TBM 앱 <span class="tag live">공개</span></h2>
+        <div class="desc">TBM 모바일 앱(근로자용) 사용 설명서. 로그인·현장 선택·TBM 참여·서명·위험 신고·SOS.</div>
+        <div class="cta">매뉴얼 열기 →</div>
+      </a>
+      <a class="alt-link" href="app/latest.html">📄 최종본(편집기 포함) 보기 <span class="mini">· 단일 HTML 파일</span></a>
+    </div>
 
     <div class="card soon">
       <div class="ico">📐</div>

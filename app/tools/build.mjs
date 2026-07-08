@@ -400,6 +400,16 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
 result = result.replace('</body>', HIDDEN_EDITOR + '\n</body>');
 
 fs.writeFileSync(OUT, result, 'utf8');
+
+// 고정 별칭: latest.html → 최신 최종본으로 리다이렉트.
+// 루트 index.html의 '최종본 보기' 링크가 이 고정 경로를 가리키므로, 버전이 올라가도 index.html은 수정 불필요.
+const outBase = encodeURI(path.basename(OUT));
+const aliasHtml = `<!doctype html><meta charset="utf-8"><title>최신 최종본으로 이동…</title>`
+  + `<meta http-equiv="refresh" content="0; url=${outBase}"><link rel="canonical" href="${outBase}">`
+  + `<p style="font:14px/1.6 system-ui,sans-serif;padding:24px">최신 최종본(v${VERSION})으로 이동합니다… `
+  + `자동 이동되지 않으면 <a href="${outBase}">여기</a>를 누르세요.</p>`;
+fs.writeFileSync(path.join(MANUAL_DIR, 'latest.html'), aliasHtml, 'utf8');
+
 // 구버전 명명 규칙 잔재 정리
 const legacy = path.join(MANUAL_DIR, 'index.standalone.html');
 if (fs.existsSync(legacy)) fs.unlinkSync(legacy);
