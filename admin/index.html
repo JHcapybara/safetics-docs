@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TBM 관리자 사용 설명서</title>
+<style>
+  :root {
+    --brand: #1f5eff;
+    --brand-dark: #16409e;
+    --ink: #1f2733;
+    --ink-soft: #5a6472;
+    --line: #e3e8ef;
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --warn-bg: #fff7e6;
+    --warn-line: #ffd591;
+    --tip-bg: #e6f4ff;
+    --tip-line: #91caff;
+    --danger-bg: #fff1f0;
+    --danger-line: #ffa39e;
+    --sidebar-w: 300px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body {
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg); line-height: 1.7; font-size: 15px;
+  }
+
+  /* ---------- 상단 바 ---------- */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 30;
+    background: var(--brand-dark); color: #fff; display: flex; align-items: center;
+    padding: 0 20px; gap: 12px;
+  }
+  .topbar .logo { font-weight: 800; font-size: 17px; letter-spacing: -0.3px; }
+  .topbar .sub { font-size: 13px; opacity: .75; }
+  .topbar .spacer { flex: 1; }
+  .topbar button {
+    background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3);
+    border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  .topbar button:hover { background: rgba(255,255,255,.25); }
+  #menuToggle { display: none; }
+
+  /* ---------- 사이드바 ---------- */
+  .sidebar {
+    position: fixed; top: 56px; left: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--card); border-right: 1px solid var(--line);
+    overflow-y: auto; padding: 0 0 40px; z-index: 20;
+  }
+  .search-wrap {
+    padding: 16px 16px 12px; position: sticky; top: 0; z-index: 2;
+    background: rgba(255, 255, 255, .55);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+  #searchBox {
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 8px;
+    font-size: 13px; outline: none; background: rgba(255,255,255,.9);
+  }
+  #searchBox::placeholder { font-size: 12px; color: #9aa4b2; }
+  #searchBox:focus { border-color: var(--brand); }
+  .nav-group { margin-top: 10px; }
+  .nav-group > .gtitle {
+    padding: 6px 16px; font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .nav-item {
+    display: block; padding: 7px 16px 7px 24px; color: var(--ink); text-decoration: none;
+    font-size: 14px; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: #f0f4fa; }
+  .nav-item.active { border-left-color: var(--brand); background: #eef4ff; color: var(--brand-dark); font-weight: 600; }
+  .nav-item.hidden, .nav-group.hidden { display: none; }
+  .no-result { display: none; padding: 16px; color: var(--ink-soft); font-size: 13px; }
+
+  /* ---------- 본문 ---------- */
+  .main { margin-left: var(--sidebar-w); padding: 80px 40px 120px; max-width: 1000px; }
+  .doc-head h1 { font-size: 30px; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .doc-head p { color: var(--ink-soft); }
+  .doc-head .meta { font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+
+  section.chapter { margin-top: 56px; }
+  section.chapter > h2 {
+    font-size: 24px; padding-bottom: 10px; border-bottom: 3px solid var(--brand);
+    letter-spacing: -0.4px;
+  }
+  section.chapter > .chapter-desc { color: var(--ink-soft); margin-top: 8px; }
+
+  article.topic {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 32px; margin-top: 24px;
+  }
+  article.topic h3 { font-size: 19px; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  article.topic .purpose { color: var(--ink-soft); margin-top: 6px; font-size: 14.5px; }
+  article.topic h4 { margin-top: 20px; font-size: 15.5px; }
+
+  .badge {
+    display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 9px;
+    border-radius: 999px; vertical-align: middle; white-space: nowrap;
+  }
+  .badge.admin { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+  .badge.manager { background: #e6f4ff; color: #0958d9; border: 1px solid #91caff; }
+  .badge.all { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+  .badge.menu { background: #f0f2f5; color: #444; border: 1px solid #d9d9d9; font-weight: 600; }
+
+  ol.steps { margin: 14px 0 0 0; padding-left: 0; counter-reset: step; list-style: none; }
+  ol.steps > li {
+    position: relative; padding: 8px 0 8px 44px; counter-increment: step;
+  }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 8px;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff;
+    font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps b, .callout b { color: var(--brand-dark); }
+
+  ul.plain { margin: 10px 0 0 20px; }
+  ul.plain li { margin: 4px 0; }
+
+  .callout { border-radius: 10px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
+  .callout .ct { font-weight: 800; margin-right: 6px; }
+  .callout.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .callout.tip { background: var(--tip-bg); border: 1px solid var(--tip-line); }
+  .callout.danger { background: var(--danger-bg); border: 1px solid var(--danger-line); }
+
+  table.tbl { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; background: #fff; }
+  table.tbl th, table.tbl td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.tbl th { background: #f0f4fa; font-size: 13px; }
+  .tbl-scroll { overflow-x: auto; }
+  .ok { color: #389e0d; font-weight: 700; }
+  .no { color: #cf1322; font-weight: 700; }
+
+  kbd.ui {
+    display: inline-block; background: #f0f2f5; border: 1px solid #d0d5dd; border-bottom-width: 2px;
+    border-radius: 6px; padding: 1px 8px; font-size: 13px; font-family: inherit; font-weight: 600;
+  }
+
+  figure.shot { margin-top: 18px; }
+  figure.shot img {
+    max-width: 100%; border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(20,40,80,.08);
+  }
+  figure.shot .ph {
+    display: none; border: 2px dashed #c4cdda; border-radius: 10px; background: #fafbfd;
+    color: #8a94a3; text-align: center; padding: 48px 16px; font-size: 13.5px;
+  }
+  figure.shot.missing img { display: none; }
+  figure.shot.missing .ph { display: block; }
+  figure.shot figcaption { font-size: 13px; color: var(--ink-soft); margin-top: 6px; text-align: center; }
+
+  .term-grid dt { font-weight: 800; margin-top: 14px; }
+  .term-grid dd { margin-left: 0; color: var(--ink-soft); }
+
+  mark { background: #fff08a; border-radius: 3px; padding: 0 2px; }
+
+  footer.doc-foot { margin-top: 64px; color: var(--ink-soft); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  /* ---------- PDF 페이지 전환 설정 모달 ---------- */
+  #pbOverlay {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 80;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  #pbOverlay[hidden] { display: none; }
+  #pbModal {
+    background: #fff; border-radius: 14px; width: 600px; max-width: 100%;
+    max-height: 78vh; display: flex; flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,.28); overflow: hidden;
+  }
+  #pbModal .pb-head { padding: 18px 22px 10px; }
+  #pbModal .pb-head h3 { font-size: 17px; }
+  #pbModal .pb-desc { font-size: 13px; color: var(--ink-soft); margin-top: 6px; line-height: 1.6; }
+  #pbList { overflow-y: auto; padding: 6px 22px 12px; flex: 1; }
+  #pbList .pb-chapter {
+    font-size: 12px; font-weight: 800; color: var(--ink-soft); margin: 14px 0 4px;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  #pbList label.pb-row {
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+    border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  #pbList label.pb-row:hover { background: #f0f4fa; }
+  #pbList input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  #pbModal .pb-foot {
+    display: flex; align-items: center; gap: 12px; padding: 12px 22px;
+    border-top: 1px solid var(--line); background: #f8fafc;
+  }
+  #pbModal .pb-hint { font-size: 12px; color: var(--ink-soft); flex: 1; }
+  #pbModal .pb-foot button {
+    background: var(--brand); color: #fff; border: none; border-radius: 8px;
+    padding: 8px 20px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  #pbModal .pb-foot button:hover { background: #3a72ff; }
+
+  /* ---------- 반응형 ---------- */
+  @media (max-width: 960px) {
+    .sidebar { transform: translateX(-100%); transition: transform .2s; }
+    .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.18); }
+    .main { margin-left: 0; padding: 76px 18px 90px; }
+    #menuToggle { display: inline-block; }
+  }
+
+  /* ---------- 인쇄(PDF) ---------- */
+  @media print {
+    .topbar, .sidebar { display: none !important; }
+    .main { margin: 0; padding: 0; max-width: none; }
+    /* 항목(article)이 페이지보다 길면 통째로 밀려 빈 페이지가 생기므로 중간 분할 허용.
+       대신 제목·이미지·표·박스 단위로만 붙잡아 어색한 절단을 막는다 */
+    article.topic { border: none; padding: 12px 0; break-inside: auto; }
+    article.topic h3, article.topic h4, section.chapter > h2 { break-after: avoid; }
+    figure.shot, table.tbl, .callout, ol.steps > li, ul.plain > li { break-inside: avoid; }
+    dl.term-grid dt { break-after: avoid; }
+    dl.term-grid dd { break-inside: avoid; }
+    figure.shot img { max-height: 460px; width: auto; max-width: 100%; }
+    section.chapter { break-before: page; }
+    section.chapter:first-of-type { break-before: auto; }
+    /* 커스텀 페이지 전환: 지정된 항목은 PDF에서 새 페이지로 시작 (화면 표시에는 영향 없음) */
+    article.pdf-break { break-before: page; }
+    figure.shot .ph { display: none !important; }
+    #pbOverlay { display: none !important; }
+    body { background: #fff; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button id="menuToggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰ 목차</button>
+  <span class="logo">TBM 관리자</span>
+  <span class="sub">사용 설명서</span>
+  <span class="spacer"></span>
+  <button id="pbSettingsBtn" title="PDF 저장 시 어떤 항목부터 새 페이지로 시작할지 설정">⚙ PDF 페이지 설정</button>
+  <button onclick="window.print()">🖨 PDF로 저장 / 인쇄</button>
+</div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="search-wrap">
+    <input id="searchBox" type="search" placeholder="🔍 검색 (예: 재발송, 파견, 인증번호)" autocomplete="off">
+  </div>
+  <div id="navRoot">
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">0. 핵심 용어 정리</span></div>
+      <a class="nav-item" href="#concepts" data-kw="용어 개념 세션 양식 템플릿 파견 권한">꼭 알아야 할 용어/개념</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">1. 시작하기</span></div>
+      <a class="nav-item" href="#login" data-kw="로그인 비밀번호 이메일 언어 자동로그인 remember">로그인</a>
+      <a class="nav-item" href="#layout" data-kw="화면 구성 대시보드 홈 알림 벨 사이드바 메뉴 로그아웃">화면 구성 익히기</a>
+      <a class="nav-item" href="#perm-check" data-kw="권한 확인 메뉴 안보임 admin manager worker">내 권한 확인하기</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">2. 주요 기능</span></div>
+      <a class="nav-item" href="#template-create" data-kw="양식 템플릿 만들기 생성 주의사항 PPE 보호구 필수">⭐양식(템플릿) 만들기</a>
+      <a class="nav-item" href="#send" data-kw="TBM 전송 등록 발송 서명 지오펜스 교육시간 일정">⭐TBM 전송 등록하기</a>
+      <a class="nav-item" href="#edit-scheduled" data-kw="예약 수정 삭제 일시 변경 수신자 추가">발송 예약 확인·수정</a>
+      <a class="nav-item" href="#participation" data-kw="참여 현황 참여율 미참여 이력">참여 현황 확인</a>
+      <a class="nav-item" href="#resend" data-kw="재발송 푸시 push 미확인자 알림">미확인자에게 다시 알리기</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">3. 부가 기능</span></div>
+      <a class="nav-item" href="#template-excel" data-kw="엑셀 excel csv 대량 등록 업로드">양식 대량 등록 (Excel)</a>
+      <a class="nav-item" href="#template-edit" data-kw="양식 수정 복원 삭제 원래대로">양식 수정·복원·삭제</a>
+      <a class="nav-item" href="#users" data-kw="근로자 정규 인원 추가 조직도 역할 변경 제거">⭐근로자(정규) 관리&nbsp;</a>
+      <a class="nav-item" href="#temp-workers" data-kw="외부 근로자 일용직 인증번호 초기화 출력 pdf">외부 근로자(일용직) 관리</a>
+      <a class="nav-item" href="#dispatch" data-kw="파견 초대 수락 종료 취소">파견 관리</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">4. 이슈 트래킹</span></div>
+      <a class="nav-item" href="#sos" data-kw="SOS 긴급 작업중지 대응">⭐SOS·긴급 상황 조회</a>
+      <a class="nav-item" href="#complaints-view" data-kw="민원 조회 필터 유형 상태 검색">민원 조회·필터</a>
+      <a class="nav-item" href="#complaints-handle" data-kw="민원 처리 조치 댓글 완료 삭제">민원 처리하기</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">5. 관리자(Admin) 전용</span></div>
+      <a class="nav-item" href="#settings-roles" data-kw="역할 권한 설정 매트릭스">역할 및 권한 설정</a>
+      <a class="nav-item" href="#settings-org" data-kw="공장 사업장 추가 GPS 지오펜스 지도 SOS 담당자">공장(사업장) 관리</a>
+      <a class="nav-item" href="#settings-defaults" data-kw="기본 설정 서명 재발송 시간 자동로그인 전송시간">기본 TBM 설정</a>
+      <a class="nav-item" href="#settings-invite" data-kw="초대 매니저 사용자 관리">초대 및 사용자 관리</a>
+    </div>
+    <div class="nav-group">
+      <div class="gtitle"><span style="color: rgb(31, 94, 255); font-size: 14px;">부록</span></div>
+      <a class="nav-item" href="#faq" data-kw="FAQ 자주 묻는 질문 문제 해결">A. 자주 묻는 질문 (FAQ)</a>
+      <a class="nav-item" href="#appendix-perm" data-kw="권한별 기능 매트릭스 표">B. 권한별 기능표</a>
+      <a class="nav-item" href="#appendix-terms" data-kw="용어집 정의">C. 용어집</a>
+      <a class="nav-item" href="#appendix-errors" data-kw="오류 에러 메시지 해결">D. 오류 메시지 사전</a>
+    </div>
+  </div>
+  <div class="no-result" id="noResult">검색 결과가 없습니다.</div>
+</nav>
+
+<main class="main">
+
+  <div class="doc-head">
+    <h1>TBM 관리자 사용 설명서</h1>
+    <p>영업·마케팅·운영·총무·관리직 등 비개발 직군을 위한 TBM(Tool Box Meeting) 관리자 웹 사용 안내서입니다.</p>
+  </div>
+
+  <!-- ======================= 0. 핵심 개념 ======================= -->
+  <section class="chapter" id="ch0">
+    <h2>0. 핵심 용어 정리</h2>
+    <article class="topic" id="concepts"><h3>꼭 알아야 할 용어/개념</h3>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th style="width:180px">용어</th><th>의미</th></tr>
+        <tr><td><b>양식(템플릿)</b></td><td>주의사항 · 개인 안전 보호구(PPE) · 특별 공지를 묶어둔 <b>재사용 서식</b>입니다.<br><b>Safetics의 위험성 평가</b>를 시행한 이력이 있다면, 해당 설문 내용을 불러올 수 있습니다.</td></tr>
+        <tr><td><b>TBM 전송(세션)</b></td><td>양식을 특정 날짜·그룹에 <b>실제로 발송한 1회 건</b>. <br>TIP. 팀/인원 별 전송할 양식이 다른데, 매번 같은 내용으로 보낸다면, 양식을 여러 개 만들어두면 편합니다.</td></tr>
+        <tr><td><b>예약중 / 전송 완료</b></td><td><b>예약중&nbsp; &nbsp; &nbsp;=&gt;</b>&nbsp;아직 발송 전 : 수정·삭제 가능. <br><b>전송 완료 =&gt;</b>&nbsp;발송됨 : 읽기 전용, Push 재발송만 가능.</td></tr>
+        <tr><td><b>근로자 / 외부 근로자</b></td><td><b>근로자</b>: 조직도(회사→공장)에 소속된 정규 인원. <br><b>외부 근로자</b>: 공장별 인증번호로 TBM에 참여하는 일용직 근로자.</td></tr>
+        <tr><td><b>파견</b></td><td>다른 조직·공장 소속 인원을 <b>우리 사업장 TBM 대상으로 초대</b>하는 기능. <br>목록에서 보라색 <b>"파견" 배지</b>로 표시. 외부 근로자와는 다른 개념입니다.</td></tr>
+        <tr><td><b>권한 3단계</b></td><td><span class="badge admin">Admin</span> 전권(설정 포함) &gt; <span class="badge manager">Manager</span> TBM·근로자 관리 &gt; Worker 웹 접속 불가(모바일 앱만).</td></tr>
+      </tbody></table>
+      </div>
+      <div class="callout tip"><span class="ct">💡 팁</span>업무 흐름 한 줄 요약: <b>양식 생성 → 전송 등록(예약) → 정해진 시간에 근로자 앱으로 발송 → 참여 현황 확인 → 미확인자 재발송</b></div>
+    </article>
+  </section>
+
+  <!-- ======================= 1. 시작하기 ======================= -->
+  <section class="chapter" id="ch1">
+    <h2>1. 시작하기</h2>
+
+    <article class="topic" id="login">
+      <h3>1.1 로그인 <span class="badge all">전체</span></h3>
+      <p class="purpose">브라우저로 관리자 웹에 접속해 계정으로 로그인합니다.</p>
+      <figure class="shot"><img src="img/01-login.png" alt="로그인 화면" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 로그인 화면</div><figcaption>로그인 화면</figcaption></figure>
+      <ol class="steps">
+        <li>관리자 웹 주소로 접속합니다. (사내 공지된 URL)</li>
+        <li><b>이메일</b>과 <b>비밀번호</b>(4자 이상)를 입력합니다. 👁 아이콘으로 비밀번호를 확인할 수 있습니다.<br>=&gt; 이메일/비밀번호는 SafetyDesigner 계정과 동일합니다. <br>=&gt; 비밀번호를 잊으셨다면 Safetics 홈페이지에서 비밀번호 재설정을 단계를 거쳐주세요.</li>
+        <li>필요하면 화면의 언어 선택에서 <kbd class="ui">한국어</kbd> / <kbd class="ui">English</kbd>를 바꿉니다.</li>
+        <li>다음에 자동으로 로그인하려면 <kbd class="ui">Remember me</kbd>를 체크합니다.</li>
+        <li><kbd class="ui">Sign In</kbd>을 누릅니다.</li>
+      </ol>
+      <h4>로그인이 안 될 때</h4>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>화면 메시지</th><th>원인과 해결</th></tr>
+        <tr><td>"이메일 또는 비밀번호가 올바르지 않습니다."</td><td>입력 오류. 대소문자·공백 확인 후 재시도.<br><span style="font-size: 15px;">이메일/비밀번호는 SafetyDesigner 계정과 동일.</span></td></tr>
+        <tr><td>"TBM 사용 계약이 없습니다."</td><td>사내 이용자 : 소속 회사에 TBM 계약이 없는 상태. 사내 담당자에게 문의.<br>사내 담당자 : 세이프틱스의 담당 영업 인원에게 문의.</td></tr>
+        <tr><td>"조직에 포함되어있지 않습니다."</td><td>계정이 아직 조직(그룹)에 등록되지 않음. 사내 관리자(Admin)에게 등록 요청.</td></tr>
+      </tbody></table>
+      </div>
+    </article>
+
+    <article class="topic" id="layout">
+      <h3>1.2 화면 구성 익히기 <span class="badge all">전체</span></h3>
+      <p class="purpose">상단 헤더 · 왼쪽 사이드바 · 가운데 콘텐츠 3영역으로 구성됩니다.</p>
+      <figure class="shot"><img src="img/02-home.png" alt="홈 대시보드" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 홈(대시보드)</div><figcaption>홈(대시보드) — 로그인 직후 첫 화면</figcaption></figure>
+      <h4>상단 헤더</h4>
+      <ul class="plain">
+        <li><b>🔔 알림 벨</b>: 30초마다 자동 갱신. 🚨 SOS / ⚠️ 작업중지 / 신규 민원 / 새 답글 알림이 표시됩니다. 개별 삭제(X) 또는 <kbd class="ui">모두 지우기</kbd> 가능.</li>
+        <li>화면이 좁으면(태블릿·모바일) ☰ 버튼으로 메뉴를 엽니다.</li>
+      </ul>
+      <h4>왼쪽 사이드바</h4>
+      <ul class="plain">
+        <li>메뉴: <b>홈 / TBM 관리 / 근로자 관리 / 민원 관리 / 권한 및 설정</b> — 내 권한에 따라 보이는 메뉴가 다릅니다(<a href="#perm-check">1.3 참고</a>).</li>
+        <li>하단 사용자 카드: 이름·회사·권한 배지·계정. <kbd class="ui">Language</kbd>로 언어 전환, <kbd class="ui">로그아웃</kbd> 버튼.</li>
+        <li>사이드바는 접기/펼치기 토글로 좁힐 수 있습니다.</li>
+      </ul>
+      <h4>홈(대시보드)에서 보는 것</h4>
+      <ul class="plain">
+        <li><b>지표 카드</b>: 이번 주 TBM 전송 / 근로자 현황 / 외부 근로자 현황 / 빠른 작업</li>
+        <li><b>빠른 작업</b>: TBM 전송 등록 · TBM 양식 생성 · 인원 추가 · TBM 전송 이력 — 클릭 한 번으로 이동</li>
+        <li><b>알림 센터</b>: SOS·미서명·미참여·예약 알림. 클릭하면 관련 화면으로 이동</li>
+        <li><b>주간 TBM 참여율</b>: 현장별 지난주 vs 이번주 그래프</li>
+        <li><b>최근 TBM</b>: 최근 발송 건 목록. <kbd class="ui">보기</kbd>로 상세, <kbd class="ui">전체 보기</kbd>로 이력 페이지 이동</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="perm-check">
+      <h3>1.3 내 권한 확인하기 <span class="badge all">전체</span></h3>
+      <p class="purpose">사이드바 하단 사용자 카드의 배지(Admin/Manager/Worker)로 내 권한을 확인합니다. 권한에 따라 보이는 메뉴가 다릅니다.</p>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>메뉴</th><th><span class="badge admin">Admin</span></th><th><span class="badge manager">Manager</span></th></tr>
+        <tr><td>홈</td><td class="ok">O</td><td class="ok">O</td></tr>
+        <tr><td>TBM 관리 (전송 이력·전송 등록·템플릿)</td><td class="ok">O</td><td class="ok"><span style="color: rgb(207, 19, 34);">X</span> (Admin이 권한 부여 시&nbsp;&nbsp;O)<br></td></tr>
+        <tr><td>근로자 관리 (근로자 목록·외부 근로자 현황)</td><td class="ok">O</td><td class="ok"><span style="color: rgb(207, 19, 34);">X</span> (Admin이 권한 부여 시 O)<br></td></tr>
+        <tr><td>민원 관리</td><td class="ok">O</td><td class="ok">O</td></tr>
+        <tr><td>권한 및 설정</td><td class="ok">O</td><td class="no">X</td></tr>
+      </tbody></table>
+      </div>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span><b>"메뉴가 안 보여요"</b>는 대부분 권한 문제입니다. Manager의 세부 권한(TBM 관리, 근로자 초대 등)은 Admin이 <a href="#settings-roles">역할 및 권한 설정</a>에서 조정합니다. Worker 계정은 관리자 웹에 접속할 수 없습니다(모바일 App만 이용 가능).</div>
+    </article>
+  </section>
+
+  <!-- ======================= 2. 매일 하는 일 ======================= -->
+  <section class="chapter" id="ch2">
+    <h2>2. 주요 기능 | 양식 생성과 TBM 발송·확인</h2>
+
+    <article class="topic" id="template-create">
+      <h3>2.1 양식(템플릿) 만들기 ★필수 <span class="badge menu">TBM 관리 &gt; TBM 템플릿 생성</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">TBM 발송에 쓸 재사용 양식을 만듭니다. <b>양식이 하나도 없으면 TBM 전송 일정을 등록할 수 없으므로, 가장 먼저 해야 하는 필수 작업입니다.</b></p>
+      <figure class="shot"><img src="img/07-tbm-template-create.png" alt="양식 생성" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 양식 생성</div><figcaption>양식 생성 — 왼쪽: 설문 항목 데이터 / 오른쪽: 양식 미리보기</figcaption></figure>
+      <p><br></p><p>왼쪽에는 설문 항목 데이터, 오른쪽에는 만들어지는 양식 미리보기가 표시됩니다.&nbsp;</p><p>항목 데이터는 출처별로 5개 탭이 있습니다:</p>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>탭</th><th>내용</th></tr>
+        <tr><td>로봇 셀 점검항목</td><td><span style="font-weight: bold; color: rgb(207, 19, 34);">Safetics의 위험성 평가(RA) 보고서에서 가져온 항목</span>. <br><span style="color: rgb(31, 94, 255);">SafetyDesigner에서 생성한 RA 보고서를 선택</span>하면 설문이 로드됨.<br><span style="color: rgb(138, 148, 163);">당사의 SafetyDesigner-RA 서비스를 이용하지 않았다면 로드할 항목이 없습니다.</span></td></tr>
+        <tr><td>유해 요인별</td><td>유해 요인 기준 표준 항목</td></tr>
+        <tr><td>설비별</td><td>설비 기준 표준 항목</td></tr>
+        <tr><td>개인 안전 보호구</td><td>PPE(보호구) 항목</td></tr>
+        <tr><td>사용자 커스텀</td><td>직접 만든 항목 — <b>유일하게 편집 가능한 탭</b> (<a href="#template-excel">Excel 대량 등록</a> 지원)</td></tr>
+      </tbody></table>
+      </div>
+      <ol class="steps">
+        <li>탭을 고르고, 서브 카테고리 필터·검색으로 원하는 항목을 찾습니다.</li>
+        <li>항목의 버튼으로 <b>"주의사항"</b> 또는 <b>"PPE"</b> 섹션에 추가합니다. 여러 개 체크 후 <kbd class="ui">선택 항목 추가</kbd>로 일괄 추가도 됩니다.</li>
+        <li>목록에 없는 내용은 <kbd class="ui">직접 입력</kbd>으로 빈 항목을 추가해 작성합니다.</li>
+        <li>잘못 넣은 항목은 휴지통으로 삭제합니다.</li>
+        <li>오른쪽 미리보기에서 <b>문서 이름</b>과 <b>특별 공지</b>를 입력합니다.</li>
+        <li><kbd class="ui">양식 저장</kbd>을 누릅니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>양식에 추가된 항목에는 출처 태그([위험성 평가] [유해 요인별] [설비별] [개인 안전 보호구] [사용자 입력])가 붙어 어디서 온 항목인지 구분됩니다.</div>
+    </article>
+
+    <article class="topic pdf-break" id="send">
+      <h3>2.2 TBM 전송 등록하기 ★ <span class="badge menu">TBM 관리 &gt; TBM 전송 등록</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">양식을 골라 근로자들에게 TBM을 발송(예약)합니다. 가장 자주 쓰는 핵심 기능입니다.</p>
+      <figure class="shot"><img src="img/03-tbm-send.png" alt="TBM 전송 등록" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — TBM 전송 등록</div><figcaption>TBM 전송 등록 — 왼쪽: 설정·미리보기 / 오른쪽: 수신자 목록</figcaption></figure>
+      <ol class="steps">
+        <li><b>일정 이름</b>을 입력합니다. (예: "3월 2주차 프레스라인 TBM")</li>
+        <li><b>수신할 그룹</b>(사업장)을 선택합니다. 여러 개 선택 가능, <kbd class="ui">전체 선택</kbd> 버튼도 있습니다. 선택하면 오른쪽에 수신자 목록이 사업장별로 표시됩니다.</li>
+        <li><b>전송 일시</b>를 선택합니다. 과거 시간은 선택할 수 없고, 기본값은 다음날 설정 시각입니다.</li>
+        <li><b>서명 방식</b>을 선택합니다: <b>자필 서명</b> / <b>서명 없음</b> / <b>Geo-Fence</b>(공장 GPS 범위 안에서만 제출 가능).</li>
+        <li><b>교육 시간 반영 여부</b>(예/아니오)를 선택합니다.<br>-&gt; 일부 작업장에서는 TBM 참여 시간을 교육 시간으로 반영하는데, 이를 위한 설정값입니다. <br>-&gt; 이 기능을 사용하기 위해서는 별도 설정이 필요하므로, 개별 문의 부탁드립니다.</li>
+        <li><b>TBM 양식(템플릿)</b>을 선택합니다. 아래에 주의 사항·PPE·특별 공지 미리보기가 표시됩니다. <br>문서 이름과 특별 공지는 이 화면에서도 바로 수정할 수 있습니다.</li>
+        <li><kbd class="ui">저장하기</kbd>를 누릅니다. "TBM이 저장되었습니다." 메시지와 함께 전송 이력으로 이동합니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>서명 방식·교육 시간·전송 시각의 <b>기본값</b>은 Admin이 <a href="#settings-defaults">기본 TBM 설정</a>에서 바꿀 수 있습니다.&nbsp;</div>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>양식이 하나도 없으면 발송할 수 없습니다. 먼저 <a href="#template-create">2.1 양식(템플릿) 만들기</a>를 진행하세요 (화면의 <kbd class="ui">양식 생성</kbd> 버튼으로도 이동 가능). 오른쪽 수신자 목록에서 보라색 <b>"파견" 배지</b>가 붙은 인원은 파견 온 근로자입니다.</div>
+    </article>
+
+    <article class="topic pdf-break" id="edit-scheduled">
+      <h3>2.3 발송 예약 확인·수정하기 <span class="badge menu">TBM 관리 &gt; TBM 전송 이력</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">아직 발송되지 않은 "예약중" 건의 일시·수신자·양식을 바꾸거나 삭제합니다.</p>
+      <figure class="shot"><img src="img/04-tbm-history.png" alt="TBM 전송 이력" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — TBM 전송 이력</div><figcaption>TBM 전송 이력 - 상태 열에서 "예약중"/"전송 완료" 구분</figcaption></figure>
+      <ol class="steps">
+        <li><b>TBM 전송 이력</b>에서 상태가 <b>"예약중"</b>인 행을 찾습니다. 일정명·템플릿명·사업장명으로 검색할 수 있습니다.</li>
+        <li>행을 클릭해 상세 화면으로 들어갑니다.</li>
+        <li>필요한 항목을 수정합니다:
+          <ul class="plain">
+            <li><b>전송 일시</b> 변경 -&nbsp; 달력에서 선택 (즉시 반영)</li>
+            <li><b>수신 그룹</b> 추가/삭제</li>
+            <li><b>양식 교체</b> 또는 <kbd class="ui">수정</kbd>으로 양식 편집 화면 이동</li>
+            <li><kbd class="ui">수신자 추가</kbd>&nbsp;- 검색해서 여러 명 한 번에 추가, 휴지통으로 개별 삭제</li>
+          </ul>
+        </li>
+        <li>수정을 마치면 <kbd class="ui">저장</kbd>. 발송 자체를 취소하려면 <kbd class="ui">삭제</kbd>.</li>
+      </ol>
+      <div class="callout danger"><span class="ct">🚫 </span><b>전송 완료된 TBM은 수정·삭제할 수 없습니다.</b> <br>이력 목록에서도 "예약중" 행만 휴지통 아이콘으로 삭제됩니다. (알림 메시지 : "삭제에 실패했습니다. 전송 완료된 TBM은 삭제할 수 없습니다.")</div>
+    </article>
+
+    <article class="topic" id="participation">
+      <h3>2.4 참여 현황 확인하기 <span class="badge menu">TBM 관리 &gt; TBM 전송 이력</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">발송된 TBM에 누가 참여했고 누가 안 했는지 확인합니다.</p>
+      <figure class="shot"><img src="img/05-tbm-history-detail.png" alt="TBM 전송 이력 상세" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 전송 이력 상세</div><figcaption>전송 완료 건 상세 — 참여 완료/미참여 구분</figcaption></figure>
+      <ol class="steps">
+        <li><b>TBM 전송 이력</b> 목록에서 <b>참여율</b> 열로 전체 현황을 훑어봅니다. 열 제목을 눌러 정렬할 수 있습니다.</li>
+        <li>상태가 <b>"전송 완료"</b>인 행을 클릭해 상세로 들어갑니다.</li>
+        <li><b>참여 완료</b> / <b>미참여</b> 목록을 확인합니다. 수신자는 소속 사업장별로 접었다 펼 수 있고, 정규 근로자와 <b>외부 근로자</b>(보라색)가 구분 표시됩니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>홈 대시보드의 <b>주간 TBM 참여율</b> 그래프로 현장별 추세(지난주 vs 이번주)를 한눈에 볼 수 있습니다.</div>
+    </article>
+
+    <article class="topic pdf-break" id="resend">
+      <h3>2.5 미확인자에게 다시 알리기 (Push 재발송) <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">TBM을 아직 확인하지 않은 인원에게만 Push 알림을 다시 보냅니다.</p>
+      <ol class="steps">
+        <li>전송 완료 건의 상세 화면으로 들어갑니다.</li>
+        <li><kbd class="ui">Push 알림 재발송</kbd> 버튼을 누릅니다.</li>
+        <li>"미확인자 N명에게 Push 알림을 재발송했습니다." 메시지를 확인합니다.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>재발송 버튼은 <b>발송 후 일정 시간(기본 설정값, 예: 2시간)이 지나야 활성화</b>됩니다. <span style="color: rgb(207, 19, 34);">버튼이 비활성화라면 아직 대기 시간이 안 지난 것</span>입니다. <br>기준 시간은 Admin이 <a href="#settings-defaults">기본 TBM 설정</a>의 "미확인자 재발송 기준 시간"(1/2/4/8시간)에서 바꿉니다.</div>
+    </article>
+  </section>
+
+  <!-- ======================= 3. 가끔 하는 일 ======================= -->
+  <section class="chapter" id="ch3">
+    <h2>3. 부가 기능 | 양식과 인원 관리</h2>
+
+    <article class="topic" id="template-excel">
+      <h3>3.1 양식 항목 대량 등록 (Excel) <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">"사용자 커스텀" 탭에 점검 항목 수십 개를 한 번에 등록합니다.</p>
+      <ol class="steps">
+        <li>양식 생성 화면에서 <b>사용자 커스텀</b> 탭으로 이동합니다.</li>
+        <li><kbd class="ui">양식 다운로드</kbd>로 CSV 서식 파일을 내려받습니다.</li>
+        <li>Excel에서 열어 <b>점검 항목 / 위험인자 / 유해요인</b> 열을 채웁니다.</li>
+        <li><kbd class="ui">Excel 업로드</kbd>로 작성한 파일(CSV/xlsx)을 올립니다.</li>
+        <li>잘못 올라간 항목은 체크 후 <kbd class="ui">선택 삭제</kbd>로 정리합니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 팁</span>&nbsp;소량의 건을 추가할 때는 업로드 대신 <kbd class="ui">직접 입력</kbd> 모달(점검 항목/위험인자/유해요인 입력)이 빠릅니다.</div>
+    </article>
+
+    <article class="topic pdf-break" id="template-edit">
+      <h3>3.2 양식 수정·복원·삭제 <span class="badge menu">TBM 관리 &gt; 템플릿 리스트</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">만들어 둔 양식을 찾아 내용을 고치거나 삭제합니다.</p>
+      <figure class="shot"><img src="img/06-tbm-template-list.png" alt="양식 목록" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 템플릿 리스트</div><figcaption>템플릿 리스트 — 왼쪽: 목록 / 오른쪽: 미리보기</figcaption></figure>
+      <ol class="steps">
+        <li><b>템플릿 리스트</b>에서 양식 이름으로 검색하고, 행을 클릭하면 오른쪽에 미리보기(문서 이름·주의 사항·PPE·특별 공지)가 표시됩니다.</li>
+        <li>내용을 고치려면 <kbd class="ui">수정</kbd> — 양식 생성과 같은 화면이 편집 모드로 열립니다.</li>
+        <li>편집 중 원본으로 되돌리려면 <kbd class="ui">원래대로</kbd>(원본 복구), 편집을 그만두려면 <kbd class="ui">취소</kbd>.</li>
+        <li>양식을 지우려면 <kbd class="ui">삭제</kbd> → "이 양식을 삭제하시겠습니까?" 확인.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>수정 화면 상단에 경고 배너가 표시됩니다. 이미 발송된 TBM에는 영향이 없지만, 이 양식을 쓰는 "예약중" 건이 있다면 발송 내용이 달라질 수 있으니 수정 전에 확인하세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="users">
+      <h3>3.3 근로자(정규) 관리 <span class="badge menu">근로자 관리 &gt; 근로자 목록</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">조직도에서 인원을 찾고, 공장에 인원을 추가/제거하고, 권한을 바꿉니다.</p>
+      <figure class="shot"><img src="img/08-users.png" alt="근로자 목록" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 근로자 목록</div><figcaption>근로자 목록 — 왼쪽: 조직도 트리 / 오른쪽: 인원 테이블·상세</figcaption></figure>
+      <h4>인원 찾기</h4>
+      <ul class="plain">
+        <li>왼쪽 조직도 트리: <b>회사 → 공장 → 인원</b>. 아직 공장에 배정되지 않은 인원은 <b>"그룹 없음"</b>에 모여 있습니다.</li>
+        <li>인원을 클릭하면 상세(이름/이메일/연락처/소속 공장/직급/권한/등록일)와 <b>TBM 참여 내역</b>이 표시됩니다.</li>
+      </ul>
+      <h4>공장에 인원 추가 / 제거</h4>
+      <ol class="steps">
+        <li>트리에서 <b>공장</b>을 선택합니다. (공장 선택 시에만 <kbd class="ui">인원 추가</kbd>·<kbd class="ui">파견 관리</kbd> 버튼이 활성화됩니다)</li>
+        <li><kbd class="ui">인원 추가</kbd> → 모달에서 검색 → 여러 명 체크 → 추가.</li>
+        <li>제거는 목록에서 휴지통 아이콘 → 확인. (그룹에서만 빠지고 계정은 유지됩니다)</li>
+      </ol>
+      <h4>권한(역할) 변경</h4>
+      <ol class="steps">
+        <li>인원 상세에서 <kbd class="ui">수정</kbd>을 누르고 역할을 선택합니다.</li>
+        <li><b>본인보다 낮은 등급만</b> 변경할 수 있습니다. (Admin &gt; Manager &gt; Worker)</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span><b>그룹(사업장) 추가는 Admin 전용</b>입니다. Manager가 <kbd class="ui">그룹 추가</kbd>를 누르면 "그룹(사업장) 추가는 Admin 권한만 가능합니다." 안내가 뜹니다. Admin은 <a href="#settings-org">권한 및 설정 &gt; 조직/사업장 관리</a>에서 추가합니다.</div>
+    </article>
+
+    <article class="topic pdf-break" id="temp-workers">
+      <h3>3.4 외부 근로자(일용직) 관리 <span class="badge menu">근로자 관리 &gt; 외부 근로자 현황</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">일용직의 근무·TBM 참여 현황을 확인하고, 공장별 인증번호를 관리합니다.</p>
+      <figure class="shot"><img src="img/09-users-temporary.png" alt="외부 근로자 현황" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 외부 근로자 현황</div><figcaption>외부 근로자 현황 — 상단 기간 필터 + 탭 3개</figcaption></figure>
+      <p>상단에서 <b>기간(시작일~종료일)</b>을 먼저 고르고, 탭 3개를 사용합니다:</p>
+      <h4>① 공장별 현황</h4>
+      <ul class="plain">
+        <li>왼쪽 공장 트리(인원수 표시) → 외부 근로자 근무 현황(이름·연락처·소속·마지막 근무일) → 상세 카드(TBM 참여 내역 포함)</li>
+        <li><kbd class="ui">인증 정보 초기화</kbd>: 해당 근로자의 생체인증/PIN을 초기화합니다. 폰을 바꿨거나 인증이 안 될 때 사용.</li>
+      </ul>
+      <h4>② 기간별 TBM 참여 현황</h4>
+      <ul class="plain"><li>날짜 × 공장별로 TBM에 참여한 일용직 수를 집계한 표. 보고용으로 유용합니다.</li></ul>
+      <h4>③ 인증번호</h4>
+      <ol class="steps">
+        <li>공장별 인증번호를 확인합니다. (없으면 자동 발행)</li>
+        <li>번호가 노출됐다면 개별 <kbd class="ui">갱신</kbd> 또는 <kbd class="ui">일괄 갱신</kbd>으로 재발급합니다.</li>
+        <li><kbd class="ui">일괄 출력</kbd>으로 공장명+인증번호를 A4 PDF로 저장해 현장에 게시합니다.</li>
+      </ol>
+      <div class="callout tip"><span class="ct">💡 개념</span><b>인증번호</b>는 외부 근로자가 모바일 앱에서 특정 공장의 TBM에 참여하기 위해 입력하는 공장별 코드입니다. 갱신하면 이전 번호는 무효가 됩니다.</div>
+    </article>
+
+    <article class="topic" id="dispatch">
+      <h3>3.5 파견 관리 <span class="badge menu">근로자 목록 &gt; 파견 관리</span> <span class="badge manager">Manager 이상</span></h3>
+      <p class="purpose">다른 조직·공장 소속 근로자를 우리 사업장 TBM 대상으로 초대합니다.</p>
+      <ol class="steps">
+        <li><b>근로자 목록</b>에서 공장을 선택하고 <kbd class="ui">파견 관리</kbd> 버튼을 누릅니다.</li>
+        <li><b>파견 초대</b> 탭에서 상대의 <b>이메일 또는 전화번호</b>로 검색합니다. (개인정보 보호를 위해 검색 결과는 마스킹되어 표시됩니다)<br><span style="color: rgb(207, 19, 34);">🚩주의 : SafetyDesigner 회원으로 가입된 계정 정보를 검색해주세요.</span></li>
+        <li><b>시작일</b>(기본: 수락 즉시) / <b>종료일</b>(기본: 무기한) / 공종·작업 유형 / 메모를 입력합니다.</li>
+        <li><kbd class="ui">파견 초대 발송</kbd>을 누릅니다. 상대가 모바일 앱에서 수락하면 파견이 시작됩니다.</li>
+        <li><b>파견 현황</b> 탭에서 상태를 관리합니다:
+          <ul class="plain">
+            <li>상태: 대기중 / 수락됨 / 거절됨 / 취소됨 / 만료됨</li>
+            <li>대기중 → <kbd class="ui">초대 취소</kbd> 가능</li>
+            <li>수락됨 → <kbd class="ui">파견 종료</kbd> 가능</li>
+          </ul>
+        </li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 개념 주의</span><b>파견 ≠ 외부 근로자.</b> 파견은 "다른 조직의 <b>정규 계정</b>을 우리 TBM 대상에 포함"하는 것이고, 외부 근로자는 "계정 없이 인증번호로 참여하는 일용직"입니다. 파견 인원은 근로자 목록·수신자 목록에서 보라색 <b>"파견" 배지</b>로 표시됩니다. 이미 파견 중인 사람은 중복 초대할 수 없습니다.</div>
+    </article>
+  </section>
+
+  <!-- ======================= 4. 문제 생겼을 때 ======================= -->
+  <section class="chapter" id="ch4">
+    <h2>4. 이슈 트래킹 | 민원·SOS 대응</h2>
+
+    <article class="topic" id="sos">
+      <h3>4.1 SOS·긴급 상황 대응 ★ <span class="badge menu">민원 관리</span> <span class="badge all">전체</span></h3>
+      <p class="purpose">현장에서 올라온 SOS·작업중지 신고를 가장 먼저 확인하고 조치합니다.</p>
+      <figure class="shot"><img src="img/10-complaints.png" alt="민원 관리" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 민원 관리</div><figcaption>민원 관리 — 상단 현황 카드(오늘/미처리/SOS) + 목록</figcaption></figure>
+      <ol class="steps">
+        <li>SOS가 접수되면 <b>🔔 알림 벨</b>(🚨 표시)과 <b>민원 관리 상단 SOS 카드</b>(깜빡임)로 알 수 있습니다.</li>
+        <li>SOS 카드 또는 알림을 클릭해 상세를 엽니다.</li>
+        <li>내용·위치·신고자를 확인하고 현장 대응을 진행합니다.</li>
+        <li>대응 내용을 <b>조치 이력(댓글)</b>으로 기록합니다. 댓글을 등록하면 상태가 자동으로 <b>"조치 중"</b>이 됩니다.</li>
+        <li>상황 종료 후 <kbd class="ui">조치 완료 상태로 변경</kbd>을 누릅니다.</li>
+      </ol>
+      <div class="callout danger"><span class="ct">🚨 중요</span>SOS 민원은 <b>Admin도 삭제할 수 없습니다</b>(기록 보존). <br>긴급 알림(SOS·작업중지) 수신 대상은 <a href="#settings-roles">역할 및 권한 설정</a>의 "긴급 알림 수신" 항목으로 관리합니다. <br>공장별 SOS 담당자·작업중지 관리자는 <a href="#settings-org">공장 설정</a>에서 지정합니다.</div>
+    </article>
+
+    <article class="topic" id="complaints-view">
+      <h3>4.2 민원 조회·필터 <span class="badge all">전체</span></h3>
+      <p class="purpose">민원을 유형·상태·기간·공장별로 걸러서 봅니다.</p>
+      <h4>민원 유형 5가지</h4>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>유형</th><th>의미</th></tr>
+        <tr><td>🚨 SOS</td><td>긴급 구조 요청 (최우선 대응)</td></tr>
+        <tr><td>⚠️ 작업중지</td><td>작업 중지 요청</td></tr>
+        <tr><td>안전</td><td>위험 요소 신고</td></tr>
+        <tr><td>건의</td><td>일반 건의 사항</td></tr>
+        <tr><td>TBM 이슈</td><td>TBM 설문 항목에서 제기된 문제 (위치가 공장이 아닌 <b>세션 이름</b>으로 표시됩니다)</td></tr>
+      </tbody></table>
+      </div>
+      <h4>상태 흐름</h4>
+      <p><b>신규 → 조치 중 → 조치 완료</b> 순서로 진행됩니다.</p>
+      <h4>거르는 방법</h4>
+      <ul class="plain">
+        <li><kbd class="ui">미처리만 보기</kbd> 토글 — 조치 완료 건 숨기기</li>
+        <li>기간(날짜 범위)·공장 필터</li>
+        <li>검색 — 제목·내용·등록자·번호</li>
+        <li>표 컬럼 필터 — 상태 / 유형 / 우선순위(긴급·높음·보통)</li>
+      </ul>
+      <div class="callout tip"><span class="ct">💡 팁</span>상단 카드 3장이 요약판입니다: <b>오늘 현황</b>(건의/SOS/안전 건수) · <b>미처리</b>(신규/조치중/조치완료) · <b>SOS</b>(미완료 목록).</div>
+    </article>
+
+    <article class="topic" id="complaints-handle">
+      <h3>4.3 민원 처리하기 <span class="badge all">전체</span></h3>
+      <p class="purpose">민원 상태를 바꾸고 조치 내용을 기록합니다.</p>
+      <ol class="steps">
+        <li>목록에서 민원 행을 클릭해 <b>상세 모달</b>을 엽니다.</li>
+        <li><b>조치 이력 추가</b>에 대응 내용을 적고 등록합니다. (신규 건이면 자동으로 "조치 중" 전환)</li>
+        <li>완료되면 <kbd class="ui">조치 완료 상태로 변경</kbd>. 잘못 완료했다면 <kbd class="ui">조치 중으로 원복</kbd>.</li>
+        <li>여러 건을 한 번에 끝내려면 목록에서 체크 후 <kbd class="ui">일괄 조치 완료</kbd>.</li>
+      </ol>
+      <h4>권한별 차이</h4>
+      <ul class="plain">
+        <li><b>민원 등록</b> 버튼(제목/내용/유형/공장/우선순위 입력)은 <span class="badge admin">Admin</span>에게만 표시됩니다.</li>
+        <li><b>삭제</b>: Admin은 SOS를 제외한 민원 삭제 가능. 일반 사용자는 본인이 작성한 건만 삭제 가능.</li>
+        <li>댓글은 본인이 쓴 것만 수정·삭제할 수 있습니다.</li>
+      </ul>
+    </article>
+
+  </section>
+
+  <!-- ======================= 5. Admin 전용 ======================= -->
+  <section class="chapter" id="ch5">
+    <h2>5. 관리자(Admin) 전용 — 시스템 설정</h2>
+    <p class="chapter-desc"><span class="badge menu">권한 및 설정</span> 메뉴는 <span class="badge admin">Admin</span>에게만 표시됩니다. 탭 4개로 구성됩니다.</p>
+
+    <article class="topic" id="settings-roles">
+      <h3>5.1 역할 및 권한 설정 <span class="badge admin">Admin</span></h3>
+      <p class="purpose">Manager·Worker가 무엇을 할 수 있는지 체크박스 표로 조정합니다.</p>
+      <figure class="shot"><img src="img/12-settings.png" alt="권한 및 설정" onerror="this.closest('figure').classList.add('missing')"><div class="ph">📷 스크린샷 준비 중 — 권한 및 설정</div><figcaption>권한 및 설정 — 역할 및 권한 탭</figcaption></figure>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>권한 항목</th><th>의미</th></tr>
+        <tr><td>TBM 생성/수정/발송/삭제</td><td>TBM 관리 메뉴 전체 (전송 등록·이력·양식)</td></tr>
+        <tr><td>공장 생성/수정/삭제</td><td>사업장 관리</td></tr>
+        <tr><td>공장별 근로자 초대 및 수정</td><td>근로자 관리 메뉴</td></tr>
+        <tr><td>공유 링크 + 인증번호 생성</td><td>외부 근로자 인증번호 발급</td></tr>
+        <tr><td>긴급 알림 수신</td><td>SOS·작업중지 알림 받기</td></tr>
+        <tr><td>Web Admin 접근 불가</td><td>Worker 기본값 — 관리자 웹 접속 차단</td></tr>
+      </tbody></table>
+      </div>
+      <ol class="steps">
+        <li><b>권한 및 설정 &gt; 역할 및 권한</b> 탭을 엽니다.</li>
+        <li>Manager / Worker 열의 체크박스를 조정합니다. (Admin 행은 항상 전권 — 수정 불가. Admin은 조직당 1명)</li>
+        <li>저장합니다. 대상자의 메뉴·버튼 노출이 즉시 달라집니다.</li>
+      </ol>
+    </article>
+
+    <article class="topic" id="settings-org">
+      <h3>5.2 공장(사업장) 관리 <span class="badge admin">Admin</span></h3>
+      <p class="purpose">공장을 추가·수정·삭제하고, 담당자와 GPS 범위를 지정합니다.</p>
+      <ol class="steps">
+        <li><b>권한 및 설정 &gt; 조직/사업장 관리</b> 탭을 엽니다. 공장 목록(공장명/주소/SOS 담당자/작업중지 관리자/관리자/GPS 범위)이 표시됩니다.</li>
+        <li><kbd class="ui">공장 추가</kbd> 또는 기존 공장의 수정 버튼을 누릅니다.</li>
+        <li>모달에서 입력합니다:
+          <ul class="plain">
+            <li><b>이름 · 주소</b></li>
+            <li><b>SOS 담당자 / 작업중지 관리자</b> — 긴급 상황 시 우선 통보 대상</li>
+            <li><b>관리자 지정</b> — 지정된 인원은 자동으로 Manager 역할이 부여되고, 해제하면 Worker로 돌아갑니다</li>
+            <li><b>지도에서 GPS 핀 찍기 + 반경(m)</b> — Geo-Fence 서명 판정 기준</li>
+          </ul>
+        </li>
+        <li>저장합니다.</li>
+      </ol>
+      <div class="callout warn"><span class="ct">⚠️ 주의</span>공장은 <b>최대 10개</b>까지 등록됩니다. GPS 핀·반경이 실제 현장과 다르면 Geo-Fence 서명이 계속 실패하니 정확히 찍으세요.</div>
+    </article>
+
+    <article class="topic pdf-break" id="settings-defaults">
+      <h3>5.3 기본 TBM 설정 <span class="badge admin">Admin</span></h3>
+      <p class="purpose">TBM 전송 등록 화면에 기본값으로 채워질 값들과 알림 정책을 정합니다.</p>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>설정</th><th>내용</th></tr>
+        <tr><td>기본 서명 방식</td><td>자필 서명 / 서명 없음 / Geo-Fence</td></tr>
+        <tr><td>기본 교육 시간 반영</td><td>예 / 아니오</td></tr>
+        <tr><td>미확인자 재발송 기준 시간</td><td>1 / 2 / 4 / 8시간 — 이 시간이 지나야 <a href="#resend">Push 재발송</a> 버튼 활성화</td></tr>
+        <tr><td>미참여 그룹 알림</td><td>N일 이상 미참여 그룹 알림</td></tr>
+        <tr><td>미참여 인원 알림</td><td>N회 이상 미참여 인원 알림</td></tr>
+        <tr><td>자동 로그인</td><td>사용 안 함 / 무제한 / 기간 제한(N일)</td></tr>
+        <tr><td>공장별 기본 전송 시간</td><td>공장마다 TBM 기본 발송 시각 지정 (전송 등록의 기본 일시로 사용)</td></tr>
+      </tbody></table>
+      </div>
+      <div class="callout tip"><span class="ct">💡 팁</span>현장에서 "매번 같은 값을 다시 고른다"는 불만이 나오면 이 탭의 기본값을 바꾸는 것이 정답입니다.</div>
+    </article>
+
+    <article class="topic" id="settings-invite">
+      <h3>5.4 초대 및 사용자 관리 <span class="badge admin">Admin</span></h3>
+      <p class="purpose">초대 관련 정책을 설정합니다.</p>
+      <ul class="plain">
+        <li><kbd class="ui">매니저(Manager)도 초대 가능</kbd> 체크 — Manager에게 근로자 초대 권한을 열어줄지 결정합니다.</li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- ======================= 부록 ======================= -->
+  <section class="chapter" id="appendix">
+    <h2>부록</h2>
+
+    <article class="topic" id="faq">
+      <h3>A. 자주 묻는 질문 (FAQ)</h3>
+      <dl class="term-grid">
+        <dt>Q. 전송 완료된 TBM을 수정하고 싶어요.</dt>
+        <dd>A. 불가능합니다. 전송 완료 건은 읽기 전용입니다. 내용을 바꾸려면 새 TBM을 등록해 다시 발송하세요. 발송 전이라면 상태가 "예약중"일 때 수정하세요.</dd>
+        <dt>Q. "Push 알림 재발송" 버튼이 비활성화예요.</dt>
+        <dd>A. 발송 후 기준 시간(기본 설정값)이 지나야 활성화됩니다. 기준 시간은 Admin이 기본 TBM 설정에서 1/2/4/8시간 중 선택합니다.</dd>
+        <dt>Q. 사이드바에 메뉴가 안 보여요.</dt>
+        <dd>A. 권한 문제입니다. "TBM 관리"는 TBM 권한, "근로자 관리"는 초대 권한이 있어야 보입니다. "권한 및 설정"은 Admin 전용입니다. Admin에게 권한 조정을 요청하세요.</dd>
+        <dt>Q. 외부 근로자가 앱에서 인증이 안 된대요.</dt>
+        <dd>A. ① 인증번호가 갱신되어 이전 번호가 무효인지 확인 → 최신 번호 전달. ② 기기 변경 등으로 생체인증/PIN 문제라면 외부 근로자 현황에서 해당 인원의 <b>인증 정보 초기화</b>를 실행하세요.</dd>
+        <dt>Q. 파견 초대를 보냈는데 상대에게 안 떠요.</dt>
+        <dd>A. 파견 현황 탭에서 상태를 확인하세요. "대기중"이면 상대가 아직 수락 전입니다(앱 프로필 화면 또는 로그인 시 모달에서 수락). 이메일/전화번호를 다시 확인하고, 필요하면 취소 후 재초대하세요.</dd>
+        <dt>Q. 공장을 더 추가하고 싶은데 안 돼요.</dt>
+        <dd>A. 공장은 최대 10개까지 등록할 수 있습니다. 한도에 도달했다면 사용하지 않는 공장을 정리하세요. 공장 추가는 Admin 전용입니다.<br>&nbsp; &nbsp; (추후 별도 관리를 통해 증설될 수 있습니다. 배정된 영업 담당자에게 문의해주세요.)</dd>
+        <dt>Q. Geo-Fence 서명이 인정되지 않아요.</dt>
+        <dd>A. 근로자의 디바이스 위치가 공장 GPS 범위(핀 위치 + 반경) 밖에 있다고 인식되면 서명이 인정되지 않습니다. 공장 설정에서 GPS 핀 위치와 반경(m)이 실제 현장과 맞는지 확인하세요. 혹은 근로자의 휴대폰에 위치정보 변조 기능(혹은 앱)이 있는지 확인해주세요.</dd>
+      </dl>
+    </article>
+
+    <article class="topic" id="appendix-perm">
+      <h3>B. 권한별 기능 매트릭스</h3>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>기능</th><th><span class="badge admin">Admin</span></th><th><span class="badge manager">Manager</span></th><th>비고</th></tr>
+        <tr><td>대시보드(홈) 조회</td><td class="ok">O</td><td class="ok">O</td><td></td></tr>
+        <tr><td>TBM 전송 등록/수정/삭제</td><td class="ok">O</td><td class="ok">O*</td><td>*TBM 권한 부여 시</td></tr>
+        <tr><td>양식(템플릿) 생성/수정/삭제</td><td class="ok">O</td><td class="ok">O*</td><td>*TBM 권한 부여 시</td></tr>
+        <tr><td>Push 알림 재발송</td><td class="ok">O</td><td class="ok">O*</td><td>발송 후 기준 시간 경과 필요</td></tr>
+        <tr><td>근로자 추가/제거, 파견 관리</td><td class="ok">O</td><td class="ok">O*</td><td>*초대 권한 부여 시</td></tr>
+        <tr><td>권한(역할) 변경</td><td class="ok">O</td><td class="ok">△</td><td>본인보다 낮은 등급만</td></tr>
+        <tr><td>그룹(사업장) 추가/수정/삭제</td><td class="ok">O</td><td class="no">X</td><td>최대 10개</td></tr>
+        <tr><td>외부 근로자 인증번호 갱신/출력</td><td class="ok">O</td><td class="ok">O*</td><td>*인증번호 권한 부여 시</td></tr>
+        <tr><td>민원 조회/조치</td><td class="ok">O</td><td class="ok">O</td><td>전 사용자</td></tr>
+        <tr><td>민원 등록(웹)</td><td class="ok">O</td><td class="no">X</td><td></td></tr>
+        <tr><td>민원 삭제</td><td class="ok">O (SOS 제외)</td><td class="ok">본인 작성 건만</td><td>SOS는 삭제 불가</td></tr>
+        <tr><td>권한 및 설정 메뉴</td><td class="ok">O</td><td class="no">X</td><td>Admin 전용</td></tr>
+      </tbody></table>
+      </div>
+      <p style="margin-top:10px; color:var(--ink-soft); font-size:13.5px">Worker는 관리자 웹에 접속할 수 없습니다(모바일 앱 전용). Manager의 * 표시 권한은 Admin이 <a href="#settings-roles">역할 및 권한 설정</a>에서 부여/회수합니다.</p>
+    </article>
+
+    <article class="topic pdf-break" id="appendix-terms">
+      <h3>C. 용어집</h3>
+      <dl class="term-grid">
+        <dt>TBM (Tool Box Meeting)</dt><dd>작업 전 실시하는 단시간 안전 미팅. 이 시스템에서는 모바일 앱으로 설문·서명을 진행합니다.</dd>
+        <dt>양식 / 템플릿</dt><dd>주의사항·PPE·특별 공지를 묶은 재사용 서식. 화면에 따라 두 단어가 혼용되지만 같은 뜻입니다.</dd>
+        <dt>세션 / TBM 전송</dt><dd>양식을 특정 일시·그룹에 실제 발송한 1회 건.</dd>
+        <dt>PPE (개인 안전 보호구)</dt><dd>안전모·안전화·보안경 등 개인 보호 장비.</dd>
+        <dt>위험성 평가(RA)</dt><dd>Risk Assessment. 별도 시스템에서 작성된 위험성 평가 보고서로, 양식 생성 시 점검 항목의 출처로 사용됩니다.</dd>
+        <dt>Geo-Fence (지오펜스)</dt><dd>공장 GPS 핀 + 반경으로 만든 가상 울타리. 이 범위 안에서만 서명이 인정되는 서명 방식.</dd>
+        <dt>파견</dt><dd>다른 조직·공장 소속 인원을 우리 사업장 TBM 대상으로 초대하는 것. 보라색 "파견" 배지로 표시.</dd>
+        <dt>외부 근로자 (일용직)</dt><dd>정식 계정 없이 공장별 인증번호로 TBM에 참여하는 근로자.</dd>
+        <dt>인증번호</dt><dd>외부 근로자가 앱에서 공장 TBM에 참여할 때 입력하는 공장별 코드. 갱신·일괄 출력 가능.</dd>
+        <dt>그룹 / 사업장 / 공장</dt><dd>조직 단위. 화면에 따라 "그룹", "사업장", "공장"으로 표시되며 대체로 같은 단위를 가리킵니다.</dd>
+      </dl>
+    </article>
+
+    <article class="topic pdf-break" id="appendix-errors">
+      <h3>D. 오류 메시지 사전</h3>
+      <div class="tbl-scroll">
+      <table class="tbl">
+        <tbody><tr><th>메시지</th><th>원인</th><th>해결</th></tr>
+        <tr><td>"이메일 또는 비밀번호가 올바르지 않습니다."</td><td>로그인 정보 오류</td><td>재입력. 반복되면 비밀번호 재설정 문의.</td></tr>
+        <tr><td>"TBM 사용 계약이 없습니다."</td><td>회사에 TBM 계약 없음</td><td>사내 담당자/영업 문의.</td></tr>
+        <tr><td>"조직에 포함되어있지 않습니다."</td><td>계정이 조직 미등록</td><td>Admin에게 조직 등록 요청.</td></tr>
+        <tr><td>"삭제에 실패했습니다. 전송 완료된 TBM은 삭제할 수 없습니다."</td><td>전송 완료 건 삭제 시도</td><td>전송 완료 건은 보존됩니다. 삭제 불가.</td></tr>
+        <tr><td>"그룹(사업장) 추가는 Admin 권한만 가능합니다."</td><td>Manager가 그룹 추가 시도</td><td>Admin에게 요청.</td></tr>
+        <tr><td>공장 추가 불가 (한도 안내)</td><td>공장 10개 한도 도달</td><td>미사용 공장 정리 후 추가.</td></tr>
+        <tr><td>"요청하신 페이지를 찾을 수 없습니다."</td><td>잘못된 주소(404)</td><td><kbd class="ui">홈으로</kbd> 버튼으로 복귀.</td></tr>
+        <tr><td>오류 화면 (문제가 발생했습니다)</td><td>일시적 화면 오류</td><td><kbd class="ui">새로고침</kbd>. 반복되면 문의 채널로 화면 캡처와 함께 신고.</td></tr>
+      </tbody></table>
+      </div>
+    </article>
+  </section>
+
+  <!-- manual-version: 1.02 -->
+  <footer class="doc-foot">
+    TBM 관리자 사용 설명서 · <span id="docVersion">문서 버전 1.02</span> · 문서에 없는 문제는 사내 문의 채널로 화면 캡처와 함께 알려주세요.<br>
+    스크린샷 갱신(내부용): 개발 서버 실행 후 <code>npm run screenshots:mock</code> → <code>docs/TBM-Admin-manual/img/</code>에 자동 저장.
+  </footer>
+</main>
+
+<div id="pbOverlay" hidden contenteditable="false">
+  <div id="pbModal">
+    <div class="pb-head">
+      <h3>⚙ PDF 페이지 전환 설정</h3>
+      <p class="pb-desc">체크한 항목은 PDF 저장/인쇄 시 <b>새 페이지에서 시작</b>합니다.
+      각 장(0~5, 부록)은 항상 새 페이지에서 시작하며, 이 설정은 <b>화면 표시에는 영향이 없습니다</b>.</p>
+    </div>
+    <div id="pbList"></div>
+    <div class="pb-foot">
+      <span class="pb-hint">변경은 즉시 적용됩니다. 파일에 영구 저장하려면 편집 모드에서 저장하세요.</span>
+      <button id="pbClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+(function () {
+  var box = document.getElementById('searchBox');
+  var items = Array.prototype.slice.call(document.querySelectorAll('.nav-item'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.nav-group'));
+  var noResult = document.getElementById('noResult');
+
+  // 검색: 메뉴명 + data-kw + 해당 섹션 본문 텍스트까지 검색
+  var contentCache = {};
+  items.forEach(function (it) {
+    var id = it.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    contentCache[id] = (it.textContent + ' ' + (it.dataset.kw || '') + ' ' + (el ? el.textContent : '')).toLowerCase();
+  });
+
+  box.addEventListener('input', function () {
+    var q = box.value.trim().toLowerCase();
+    var any = false;
+    items.forEach(function (it) {
+      var id = it.getAttribute('href').slice(1);
+      var hit = !q || contentCache[id].indexOf(q) !== -1;
+      it.classList.toggle('hidden', !hit);
+      if (hit) any = true;
+    });
+    groups.forEach(function (g) {
+      var visible = g.querySelectorAll('.nav-item:not(.hidden)').length > 0;
+      g.classList.toggle('hidden', !visible);
+    });
+    noResult.style.display = any ? 'none' : 'block';
+  });
+
+  // 스크롤 시 현재 섹션 하이라이트
+  var topics = Array.prototype.slice.call(document.querySelectorAll('article.topic'));
+  function onScroll() {
+    var y = window.scrollY + 100;
+    var current = null;
+    topics.forEach(function (t) { if (t.offsetTop <= y) current = t.id; });
+    items.forEach(function (it) {
+      it.classList.toggle('active', it.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // 모바일: 메뉴 클릭 시 사이드바 닫기
+  items.forEach(function (it) {
+    it.addEventListener('click', function () {
+      document.getElementById('sidebar').classList.remove('open');
+    });
+  });
+
+  // ---------- PDF 페이지 전환 설정 모달 ----------
+  var pbOverlay = document.getElementById('pbOverlay');
+  var pbBtn = document.getElementById('pbSettingsBtn');
+  if (pbOverlay && pbBtn) {
+    function articleTitle(article) {
+      var h3 = article.querySelector('h3');
+      if (!h3) return article.id;
+      var clone = h3.cloneNode(true);
+      Array.prototype.forEach.call(clone.querySelectorAll('.badge'), function (b) { b.remove(); });
+      return clone.textContent.replace(/\s+/g, ' ').trim();
+    }
+    function buildPbList() {
+      var list = document.getElementById('pbList');
+      list.innerHTML = '';
+      Array.prototype.forEach.call(document.querySelectorAll('section.chapter'), function (sec) {
+        var h2 = sec.querySelector('h2');
+        var group = document.createElement('div');
+        group.className = 'pb-chapter';
+        group.textContent = h2 ? h2.textContent.trim() : '';
+        list.appendChild(group);
+        Array.prototype.forEach.call(sec.querySelectorAll('article.topic'), function (article) {
+          var row = document.createElement('label');
+          row.className = 'pb-row';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = article.classList.contains('pdf-break');
+          cb.addEventListener('change', function () {
+            article.classList.toggle('pdf-break', cb.checked);
+            // 숨김 편집 모드가 켜져 있으면 변경 사항으로 표시되도록 알림
+            try { document.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+          });
+          var span = document.createElement('span');
+          span.textContent = articleTitle(article);
+          row.appendChild(cb);
+          row.appendChild(span);
+          list.appendChild(row);
+        });
+      });
+    }
+    pbBtn.addEventListener('click', function () {
+      buildPbList();
+      pbOverlay.hidden = false;
+    });
+    document.getElementById('pbClose').addEventListener('click', function () { pbOverlay.hidden = true; });
+    pbOverlay.addEventListener('click', function (e) { if (e.target === pbOverlay) pbOverlay.hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pbOverlay.hidden) pbOverlay.hidden = true; });
+  }
+})();
+</script>
+</body></html>
