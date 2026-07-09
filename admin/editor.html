@@ -43,6 +43,8 @@
   }
   .panel button.ghost { background: #fff; color: #1f5eff; }
   .panel .hint { font-size: 12px; color: #7a8496; }
+  .panel .vsep { width: 1px; height: 22px; background: #d8deea; margin: 0 2px; display: inline-block; }
+  .panel #findCount { min-width: 42px; font-weight: 700; color: #1f5eff; }
 
   #empty {
     flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -139,7 +141,7 @@
   <span class="logo">📝 매뉴얼 편집기</span>
   <button id="openBtn">📂 매뉴얼 열기</button>
   <button id="saveBtn" class="primary" disabled>💾 저장 <small>(Ctrl+S)</small></button>
-  <button id="replaceToggle" disabled>🔤 용어 일괄 치환</button>
+  <button id="replaceToggle" disabled>🔤 찾기·치환</button>
   <button id="backupBtn" disabled>⬇ 백업 내려받기</button>
   <span id="dirtyDot" title="저장하지 않은 변경 있음"></span>
   <span id="status">파일을 열어 주세요.</span>
@@ -148,11 +150,17 @@
 
 <div class="panel" id="replacePanel" hidden>
   <input id="findT" placeholder="찾을 용어 (예: 양식)">
+  <button id="doFind" class="ghost">🔍 찾기</button>
+  <button id="findPrev" class="ghost" disabled title="이전 (Shift+Enter)">◀</button>
+  <button id="findNext" class="ghost" disabled title="다음 (Enter)">▶</button>
+  <span class="hint" id="findCount"></span>
+  <span class="vsep"></span>
   <span>→</span>
   <input id="replT" placeholder="바꿀 용어 (예: 서식)">
+  <button id="doReplaceOne" class="ghost" disabled>현재만 바꾸기</button>
   <button id="doReplace">전체 치환</button>
   <button id="closePanel" class="ghost">닫기</button>
-  <span class="hint">본문 글자만 바꿉니다 (링크·코드·디자인은 안전). 치환 후에도 Ctrl+Z로 되돌릴 수 있습니다.</span>
+  <span class="hint">본문 글자만 바꿉니다 (링크·코드·디자인 안전). 되돌리기 <b>Ctrl+Z</b> 가능.</span>
 </div>
 
 <div id="empty">
@@ -231,6 +239,7 @@
 
 <div id="toast"></div>
 
+<script src="tools/editor-find.js"></script>
 <script>
 (function () {
   var frame = document.getElementById('frame');
@@ -249,6 +258,7 @@
   var fileName = 'index.html';
   var backedUp = false;
   var dirty = false;
+  var ef = null;              // 공용 찾기/치환 엔진 (EditorFind), 파일 로드 시 생성
 
   var hasFS = ('showOpenFilePicker' in window) && location.search.indexOf('fallback') === -1;
 
@@ -315,6 +325,8 @@
     doc.close();
     doc.designMode = 'on';
     try { doc.execCommand('styleWithCSS', false, true); } catch (e) {}
+    ef = window.EditorFind ? window.EditorFind.create({ doc: doc, win: frame.contentWindow }) : null;
+    resetFindUI();
     doc.addEventListener('input', function () { setDirty(true); });
     doc.addEventListener('keydown', keyHandler);
     doc.addEventListener('selectionchange', updateFmtbar);
@@ -332,7 +344,12 @@
   // ---------- 저장 ----------
   function serialize() {
     var doc = frame.contentDocument;
+    // 찾기 하이라이트용 스타일(__ef_style)은 저장 파일에 남기지 않는다.
+    var efStyle = doc.getElementById('__ef_style');
+    var efParent = efStyle && efStyle.parentNode;
+    if (efStyle) efStyle.remove();
     var out = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+    if (efStyle && efParent) efParent.appendChild(efStyle); // 편집 계속을 위해 되돌림
     if (scriptsTail) {
       var i = out.lastIndexOf('</body>');
       if (i !== -1) out = out.slice(0, i) + scriptsTail + '\n' + out.slice(i);
@@ -369,37 +386,71 @@
     }
   }
 
-  // ---------- 용어 일괄 치환 ----------
-  function replaceAll(find, repl) {
-    var doc = frame.contentDocument;
-    var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
-    var nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    var count = 0;
-    nodes.forEach(function (t) {
-      var p = t.parentElement;
-      if (p && p.closest('script,style')) return;
-      if (t.nodeValue.indexOf(find) === -1) return;
-      count += t.nodeValue.split(find).length - 1;
-      t.nodeValue = t.nodeValue.split(find).join(repl);
-    });
-    return count;
+  // ---------- 찾기 · 치환 (공용 엔진 EditorFind) ----------
+  var findT = document.getElementById('findT');
+  var replT = document.getElementById('replT');
+  var findCount = document.getElementById('findCount');
+  var doFind = document.getElementById('doFind');
+  var findPrev = document.getElementById('findPrev');
+  var findNext = document.getElementById('findNext');
+  var doReplaceOne = document.getElementById('doReplaceOne');
+
+  function resetFindUI() {
+    findCount.textContent = '';
+    findPrev.disabled = findNext.disabled = doReplaceOne.disabled = true;
+    if (ef) ef.clear();
+  }
+  function refreshFindUI() {
+    var c = ef ? ef.count() : 0;
+    findCount.textContent = c ? (ef.position() + ' / ' + c) : '없음';
+    var none = !c;
+    findPrev.disabled = findNext.disabled = doReplaceOne.disabled = none;
+  }
+  function runFind() {
+    if (!ef) return;
+    var t = findT.value;
+    if (!t) { resetFindUI(); return; }
+    ef.search(t);
+    refreshFindUI();
   }
 
   replaceToggle.addEventListener('click', function () {
     replacePanel.hidden = !replacePanel.hidden;
-    if (!replacePanel.hidden) document.getElementById('findT').focus();
+    if (!replacePanel.hidden) findT.focus();
+    else resetFindUI();
   });
   document.getElementById('closePanel').addEventListener('click', function () {
     replacePanel.hidden = true;
+    resetFindUI();
+  });
+
+  doFind.addEventListener('click', runFind);
+  findT.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (ef && ef.count() && findT.value) { (e.shiftKey ? ef.prev() : ef.next()); refreshFindUI(); }
+    else runFind();
+  });
+  findNext.addEventListener('click', function () { if (ef) { ef.next(); refreshFindUI(); } });
+  findPrev.addEventListener('click', function () { if (ef) { ef.prev(); refreshFindUI(); } });
+
+  doReplaceOne.addEventListener('click', function () {
+    if (!ef || !ef.count()) { toast('먼저 찾기로 위치를 잡으세요.'); return; }
+    frame.contentWindow.focus();
+    ef.replaceCurrent(replT.value);
+    setDirty(true);
+    refreshFindUI();
+    toast('현재 항목을 바꿨습니다. (Ctrl+Z로 되돌리기)');
   });
   document.getElementById('doReplace').addEventListener('click', function () {
-    var find = document.getElementById('findT').value;
-    var repl = document.getElementById('replT').value;
+    if (!ef) return;
+    var find = findT.value;
     if (!find) { toast('찾을 용어를 입력하세요.'); return; }
-    var n = replaceAll(find, repl);
+    frame.contentWindow.focus();
+    var n = ef.replaceAll(find, replT.value);
     if (n > 0) setDirty(true);
-    toast(n > 0 ? '"' + find + '" → "' + repl + '" ' + n + '곳 치환했습니다.' : '"' + find + '"을(를) 찾지 못했습니다.');
+    refreshFindUI();
+    toast(n > 0 ? '"' + find + '" → "' + replT.value + '" ' + n + '곳 치환 (Ctrl+Z로 되돌리기)' : '"' + find + '"을(를) 찾지 못했습니다.');
   });
 
   // ---------- 백업 ----------

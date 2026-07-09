@@ -17,7 +17,8 @@
 | `TBM_앱_사용설명서_vX.XX.html` | 공유용 최종본(빌드 산출물). **직접 수정 금지**, 버전별로 쌓여 이력이 됨 |
 | (저장소 루트 `app-latest.html`) | 빌드가 자동 생성하는 **고정 별칭** — 항상 최신 최종본으로 리다이렉트. 루트 index.html '최종본 보기'가 이걸 가리킴. 이 폴더가 아니라 **저장소 루트**에 생성됨. **직접 수정 금지** |
 | `img/` | 스크린샷(01~18). `index.html`이 상대 경로로 참조 |
-| `editor.html` | 비개발자용 GUI 편집기 (index.html을 열어 수정). admin과 동일본, 무수정 |
+| `editor.html` | 비개발자용 GUI 편집기 (index.html을 열어 수정). admin과 동일본 |
+| `tools/editor-find.js` | **두 편집기 공용** 찾기/하이라이트/치환 엔진. editor.html은 `<script src>`로 로드, 최종본은 build가 인라인 주입. admin과 동일본 — 수정 시 양쪽 동기화 |
 | `tools/build.mjs` | 최종본 빌드 스크립트 (출력 파일명만 `TBM_앱_사용설명서_`로 지정, 나머지 로직은 admin과 동일) |
 | `tools/import.mjs` | 수정된 최종본을 index.html로 역반영 (admin과 동일본, 무수정) |
 | `readme.txt` | 사람용 안내서 |
