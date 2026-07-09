@@ -62,6 +62,7 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
   var fileHandle = null, savedRange = null, curVersion = null;
   var held = {}, clicks = 0, lastClick = 0;
   var ef = null;   // 공용 찾기/치환 엔진 (EditorFind) — 편집 진입 시 생성
+  var media = null; // 공용 미디어 엔진 (EditorMedia) — 편집 진입 시 생성
 
   var COLORS = ['#1f2733', '#1f5eff', '#cf1322', '#d46b08', '#389e0d', '#8a94a3'];
   var SIZES = [12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 28];
@@ -187,6 +188,8 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
       '<span class="hlab">→</span> <input id="__he_repl" placeholder="바꿀 용어">' +
       '<button type="button" id="__he_replOne">현재만</button>' +
       '<button type="button" id="__he_doRepl">전체 치환</button>' +
+      '<span class="hsep"></span>' +
+      '<button type="button" id="__he_media">➕ 미디어</button>' +
       '<span style="flex:1"></span>' +
       '<span class="hdirty" id="__he_dirty" title="저장하지 않은 변경"></span>' +
       '<button type="button" id="__he_save" class="hprimary">💾 저장 (Ctrl+S)</button>' +
@@ -256,6 +259,8 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
       refreshFind();
       toast(n > 0 ? '"' + find + '" → "' + rInput.value + '" ' + n + '곳 치환 (Ctrl+Z 되돌리기)' : '찾지 못했습니다.');
     });
+    var mBtn = document.getElementById('__he_media');
+    if (mBtn) mBtn.addEventListener('click', function () { if (media) media.openInsert(); });
     document.getElementById('__he_save').addEventListener('click', save);
     document.getElementById('__he_exit').addEventListener('click', exitEdit);
   }
@@ -268,6 +273,8 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
     injectStyle();
     buildToolbar();
     ef = window.EditorFind ? window.EditorFind.create({ doc: document, win: window }) : null;
+    media = window.EditorMedia ? window.EditorMedia.create({ doc: document, win: window, onChange: function () { setDirty(true); }, onToast: toast }) : null;
+    if (media) media.enable();
     document.body.classList.add('__he-editing');
     toast('편집 모드 — 문장을 클릭해 수정, 실수는 Ctrl+Z, 저장은 Ctrl+S');
   }
@@ -283,6 +290,7 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
     var st = document.getElementById('__he_style');
     if (st) st.remove();
     if (ef) { ef.clear(); ef = null; }
+    if (media) { media.disable(); media = null; }
     toast('보기 모드로 돌아왔습니다.');
   }
 
@@ -370,7 +378,7 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
   }
   function serialize() {
     var clone = document.documentElement.cloneNode(true);
-    Array.prototype.forEach.call(clone.querySelectorAll('.__he'), function (el) { el.remove(); });
+    Array.prototype.forEach.call(clone.querySelectorAll('.__he, .__eui'), function (el) { el.remove(); });
     var body = clone.querySelector('body');
     if (body) body.classList.remove('__he-editing');
     return '<!DOCTYPE html>\n' + clone.outerHTML;
@@ -422,9 +430,14 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
 })();
 </script>`;
 
-// 공용 찾기/치환 엔진(editor-find.js)을 숨김 편집기보다 먼저 인라인 주입 (최종본은 자기완결형이라 외부 참조 불가)
-const FIND_ENGINE = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'editor-find.js'), 'utf8');
-result = result.replace('</body>', '<script id="__ef_engine">\n' + FIND_ENGINE + '\n</' + 'script>\n' + HIDDEN_EDITOR + '\n</body>');
+// 공용 엔진(editor-find.js·editor-media.js)을 숨김 편집기보다 먼저 인라인 주입 (최종본은 자기완결형이라 외부 참조 불가)
+const TOOLS_DIR = path.dirname(fileURLToPath(import.meta.url));
+const FIND_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-find.js'), 'utf8');
+const MEDIA_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-media.js'), 'utf8');
+result = result.replace('</body>',
+  '<script id="__ef_engine">\n' + FIND_ENGINE + '\n</' + 'script>\n' +
+  '<script id="__em_engine">\n' + MEDIA_ENGINE + '\n</' + 'script>\n' +
+  HIDDEN_EDITOR + '\n</body>');
 
 fs.writeFileSync(OUT, result, 'utf8');
 

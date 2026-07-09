@@ -34,7 +34,7 @@
       if (!HAS_HL || doc.getElementById('__ef_style')) return;
       var s = doc.createElement('style');
       s.id = '__ef_style';
-      if (s.classList) s.classList.add('__he'); // 최종본 직렬화 시 편집기 UI와 함께 제거되도록
+      if (s.classList) { s.classList.add('__he'); s.classList.add('__eui'); } // 직렬화 시 편집기 UI와 함께 제거
       s.textContent =
         '::highlight(__ef_all){background:#fff3a0;color:inherit;}' +
         '::highlight(__ef_cur){background:#ffb020;color:#1f2733;}';

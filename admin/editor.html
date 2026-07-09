@@ -142,6 +142,7 @@
   <button id="openBtn">📂 매뉴얼 열기</button>
   <button id="saveBtn" class="primary" disabled>💾 저장 <small>(Ctrl+S)</small></button>
   <button id="replaceToggle" disabled>🔤 찾기·치환</button>
+  <button id="mediaBtn" disabled>➕ 미디어</button>
   <button id="backupBtn" disabled>⬇ 백업 내려받기</button>
   <span id="dirtyDot" title="저장하지 않은 변경 있음"></span>
   <span id="status">파일을 열어 주세요.</span>
@@ -240,6 +241,7 @@
 <div id="toast"></div>
 
 <script src="tools/editor-find.js"></script>
+<script src="tools/editor-media.js"></script>
 <script>
 (function () {
   var frame = document.getElementById('frame');
@@ -259,6 +261,8 @@
   var backedUp = false;
   var dirty = false;
   var ef = null;              // 공용 찾기/치환 엔진 (EditorFind), 파일 로드 시 생성
+  var media = null;           // 공용 미디어 엔진 (EditorMedia), 파일 로드 시 생성
+  var mediaBtn = document.getElementById('mediaBtn');
 
   var hasFS = ('showOpenFilePicker' in window) && location.search.indexOf('fallback') === -1;
 
@@ -327,6 +331,9 @@
     try { doc.execCommand('styleWithCSS', false, true); } catch (e) {}
     ef = window.EditorFind ? window.EditorFind.create({ doc: doc, win: frame.contentWindow }) : null;
     resetFindUI();
+    media = window.EditorMedia ? window.EditorMedia.create({ doc: doc, win: frame.contentWindow, onChange: function () { setDirty(true); }, onToast: toast }) : null;
+    if (media) media.enable();
+    mediaBtn.disabled = false;
     doc.addEventListener('input', function () { setDirty(true); });
     doc.addEventListener('keydown', keyHandler);
     doc.addEventListener('selectionchange', updateFmtbar);
@@ -344,12 +351,12 @@
   // ---------- 저장 ----------
   function serialize() {
     var doc = frame.contentDocument;
-    // 찾기 하이라이트용 스타일(__ef_style)은 저장 파일에 남기지 않는다.
-    var efStyle = doc.getElementById('__ef_style');
-    var efParent = efStyle && efStyle.parentNode;
-    if (efStyle) efStyle.remove();
+    // 편집기 UI(class __eui: 찾기 스타일·미디어 모달·선택 툴바 등)는 저장본에서 제거.
+    // 원위치 복원을 위해 주석 표식을 끼워 두었다가 직렬화 후 되돌린다.
+    var ui = Array.prototype.slice.call(doc.querySelectorAll('.__eui'));
+    var kept = ui.map(function (n) { var ph = doc.createComment('eui'); n.parentNode.insertBefore(ph, n); n.remove(); return { n: n, ph: ph }; });
     var out = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-    if (efStyle && efParent) efParent.appendChild(efStyle); // 편집 계속을 위해 되돌림
+    kept.forEach(function (k) { k.ph.parentNode.insertBefore(k.n, k.ph); k.ph.remove(); });
     if (scriptsTail) {
       var i = out.lastIndexOf('</body>');
       if (i !== -1) out = out.slice(0, i) + scriptsTail + '\n' + out.slice(i);
@@ -632,6 +639,8 @@
   window.addEventListener('beforeunload', function (e) {
     if (dirty) { e.preventDefault(); e.returnValue = ''; }
   });
+
+  mediaBtn.addEventListener('click', function () { if (media) media.openInsert(); });
 
   document.getElementById('openBtn').addEventListener('click', openFile);
   document.getElementById('openBtn2').addEventListener('click', openFile);

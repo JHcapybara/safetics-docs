@@ -14,6 +14,7 @@
 | `img/` | 스크린샷. `index.html`이 상대 경로로 참조 |
 | `editor.html` | 비개발자용 GUI 편집기 (index.html을 열어 수정) |
 | `tools/editor-find.js` | **두 편집기 공용** 찾기/하이라이트/치환 엔진. editor.html은 `<script src>`로 로드, 최종본은 build가 인라인 주입. app과 동일본 — 수정 시 양쪽 동기화 |
+| `tools/editor-media.js` | **두 편집기 공용** 미디어 엔진 — 이미지/GIF 삽입·교체·크기·캡션, 유튜브 임베드, mp4/webm. 이미지 base64 임베드(가로 최대 1600px 자동 축소). editor.html은 `<script src>`, 최종본은 build 인라인 주입. app과 동일본 — 양쪽 동기화 |
 | `tools/build.mjs` | 최종본 빌드 스크립트 |
 | `tools/import.mjs` | 수정된 최종본을 index.html로 역반영하는 스크립트 |
 | `readme.txt` | 사람용 안내서 |
