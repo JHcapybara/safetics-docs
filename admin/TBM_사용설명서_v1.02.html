@@ -1127,6 +1127,7 @@
     var MAXW = opts.maxImageWidth || 1600;
 
     var selBar = null, selFig = null, modal = null, docClick = null;
+    var lastBlock = null, selTrack = null;   // 마지막으로 커서가 놓인 "콘텐츠" 블록(편집기 UI 제외)
 
     // ---------------------------------------------------------------- 스타일
     function markUI(node) {
@@ -1272,16 +1273,27 @@
       return f;
     }
 
+    var BLOCKSEL = 'p,h1,h2,h3,h4,h5,h6,li,figure,article,section,blockquote,div';
+    // 현재 커서가 놓인 콘텐츠 블록. 편집기 UI(.__eui) 안이면 무시.
+    function contentBlockFromSelection() {
+      var sel = doc.getSelection();
+      if (!sel || !sel.anchorNode || !doc.body.contains(sel.anchorNode)) return null;
+      var e = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
+      if (!e || e.closest('.__eui')) return null;
+      var b = e.closest(BLOCKSEL);
+      return (b && b !== doc.body) ? b : null;
+    }
+    function trackSelection() {
+      var b = contentBlockFromSelection();
+      if (b) lastBlock = b;
+    }
     function insertNode(node) {
       ensureContentStyle();
-      var sel = doc.getSelection();
-      var block = null;
-      if (sel && sel.rangeCount && sel.anchorNode && doc.body.contains(sel.anchorNode)) {
-        var n = sel.anchorNode;
-        var e = n.nodeType === 1 ? n : n.parentElement;
-        block = e && e.closest('p,h1,h2,h3,h4,h5,h6,li,figure,article,section,blockquote,div');
-      }
-      if (block && block.parentNode && block !== doc.body) {
+      // 삽입 위치: 현재 콘텐츠 커서 → 없으면 마지막 커서 → 없으면 본문 끝.
+      // 절대 편집기 UI(.__eui: 모달·툴바) 하위에 넣지 않는다(모달 닫힐 때 같이 지워짐).
+      var block = contentBlockFromSelection();
+      if (!block && lastBlock && doc.body.contains(lastBlock) && !lastBlock.closest('.__eui')) block = lastBlock;
+      if (block && block.parentNode && block !== doc.body && !block.closest('.__eui')) {
         block.parentNode.insertBefore(node, block.nextSibling);
       } else {
         (doc.querySelector('main,article,.content,#content') || doc.body).appendChild(node);
@@ -1426,6 +1438,10 @@
         '</div>';
       doc.body.appendChild(ov);
       modal = ov;
+      // designMode 문서에서 버튼 클릭이 커서를 모달로 옮기지 않도록(→ 삽입 위치 보존)
+      ov.addEventListener('mousedown', function (e) {
+        if (e.target.closest('button') && !e.target.closest('input')) e.preventDefault();
+      });
 
       var picked = { img: null, vid: null };
       var tab = 'img';
@@ -1502,9 +1518,12 @@
     function enable() {
       ensureChromeStyle();
       if (!docClick) { docClick = onClickDoc; doc.addEventListener('click', docClick, true); }
+      if (!selTrack) { selTrack = trackSelection; doc.addEventListener('selectionchange', selTrack); }
     }
     function disable() {
       if (docClick) { doc.removeEventListener('click', docClick, true); docClick = null; }
+      if (selTrack) { doc.removeEventListener('selectionchange', selTrack); selTrack = null; }
+      lastBlock = null;
       hideSelBar();
       if (selBar) { selBar.remove(); selBar = null; }
       if (modal) { modal.remove(); modal = null; }
