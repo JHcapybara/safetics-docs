@@ -29,6 +29,13 @@
     var selBar = null, selFig = null, modal = null, docClick = null;
     var lastBlock = null, selTrack = null;   // 마지막으로 커서가 놓인 "콘텐츠" 블록(편집기 UI 제외)
 
+    // 정렬 아이콘(가로줄 3개, currentColor). 좌/가운데/우
+    var ALIGN_ICON = {
+      left:   '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M2 7h6M2 10.5h9"/></svg>',
+      center: '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M4 7h6M3 10.5h8"/></svg>',
+      right:  '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M6 7h6M3 10.5h9"/></svg>'
+    };
+
     // ---------------------------------------------------------------- 스타일
     function markUI(node) {
       node.classList.add('__eui');
@@ -257,16 +264,15 @@
       markUI(bar);
       bar.innerHTML =
         '<span class="__em_lab">정렬</span>' +
-        '<button data-al="left" title="좌측">좌</button>' +
-        '<button data-al="center" title="가운데">중</button>' +
-        '<button data-al="right" title="우측">우</button>' +
+        '<button data-al="left" title="좌측 정렬">' + ALIGN_ICON.left + '</button>' +
+        '<button data-al="center" title="가운데 정렬">' + ALIGN_ICON.center + '</button>' +
+        '<button data-al="right" title="우측 정렬">' + ALIGN_ICON.right + '</button>' +
         '<span class="__em_lab">|</span>' +
         '<span class="__em_lab">크기</span>' +
         '<span class="__em_wv" style="min-width:40px;text-align:center">100%</span>' +
         '<button data-act="reset">원본크기</button>' +
-        '<span class="__em_lab">← 모서리 파란 점을 끌어 조절</span>' +
         '<span class="__em_lab">|</span>' +
-        '<button data-act="cap">캡션</button>' +
+        '<button data-act="cap" title="캡션 켜기/끄기">캡션</button>' +
         '<button data-act="replace">이미지 교체</button>' +
         '<button data-act="del" class="danger">삭제</button>' +
         '<button data-act="close">닫기</button>';
@@ -276,7 +282,7 @@
         var b = e.target.closest('button'); if (!b || !selFig) return;
         if (b.dataset.al) { setAlign(selFig, b.dataset.al); syncSelBar(); positionHandles(); }
         else if (b.dataset.act === 'reset') { setWidth(selFig, 100); syncSelBar(); positionHandles(); }
-        else if (b.dataset.act === 'cap') { toggleCaption(selFig); positionHandles(); }
+        else if (b.dataset.act === 'cap') { toggleCaption(selFig); syncSelBar(); positionHandles(); }
         else if (b.dataset.act === 'replace') { replaceImageIn(selFig); }
         else if (b.dataset.act === 'del') { selFig.remove(); hideSelBar(); onChange(); }
         else if (b.dataset.act === 'close') { hideSelBar(); }
@@ -290,6 +296,8 @@
       Array.prototype.forEach.call(selBar.querySelectorAll('[data-al]'), function (b) {
         b.classList.toggle('on', b.dataset.al === al);
       });
+      var capBtn = selBar.querySelector('[data-act=cap]');
+      if (capBtn) capBtn.classList.toggle('on', !!selFig.querySelector('figcaption'));
     }
     function showSelBar(fig) {
       selFig = fig;

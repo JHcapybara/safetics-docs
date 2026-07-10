@@ -180,9 +180,9 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
       '<button type="button" id="__he_clear">지우기</button>' +
       '<span class="hsep"></span>' +
       '<span class="hlab">정렬</span>' +
-      '<button type="button" id="__he_alL" title="왼쪽">좌</button>' +
-      '<button type="button" id="__he_alC" title="가운데">중</button>' +
-      '<button type="button" id="__he_alR" title="오른쪽">우</button>' +
+      '<button type="button" id="__he_alL" title="왼쪽 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M2 7h6M2 10.5h9"/></svg></button>' +
+      '<button type="button" id="__he_alC" title="가운데 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M4 7h6M3 10.5h8"/></svg></button>' +
+      '<button type="button" id="__he_alR" title="오른쪽 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M6 7h6M3 10.5h9"/></svg></button>' +
       '<span class="hsep"></span>' +
       '<input id="__he_find" placeholder="찾을 용어">' +
       '<button type="button" id="__he_doFind" title="찾기 (Enter)">🔍</button>' +
