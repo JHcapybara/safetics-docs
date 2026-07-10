@@ -1,0 +1,6 @@
+{
+  "_note": "이 매뉴얼이 참조하는 코드 레포별 '마지막 반영 커밋'. /manual-update가 이 SHA 이후 diff만 분석해 선반영하고, 전부 검수(승인/반려)되면 lastSha를 origin HEAD로 갱신한다. null=아직 한 번도 동기화 안 함.",
+  "repos": {
+    "tbmadmin": { "lastSha": null, "syncedAt": null }
+  }
+}

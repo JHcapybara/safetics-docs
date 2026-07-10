@@ -770,9 +770,9 @@
     </article>
   </section>
 
-  <!-- manual-version: 1.01 -->
+  <!-- manual-version: 1.02 -->
   <footer class="doc-foot">
-    TBM 앱 사용 설명서 · <span id="docVersion">문서 버전 1.01</span> · 문서에 없는 문제는 사내 문의 채널로 화면 캡처와 함께 알려주세요.<br>
+    TBM 앱 사용 설명서 · <span id="docVersion">문서 버전 1.02</span> · 문서에 없는 문제는 사내 문의 채널로 화면 캡처와 함께 알려주세요.<br>
     빌드(공유용 최종본): 이 폴더에서 <code>node tools/build.mjs</code> → <code>TBM_앱_사용설명서_v{버전}.html</code> 생성.
   </footer>
 </main>
@@ -890,6 +890,21 @@
     pbOverlay.addEventListener('click', function (e) { if (e.target === pbOverlay) pbOverlay.hidden = true; });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pbOverlay.hidden) pbOverlay.hidden = true; });
   }
+})();
+</script>
+
+<!-- ============ 검수 레이어: /manual-update 자동반영분 승인/반려 (data-rv 있을 때만 표시) ============ -->
+<script src="tools/editor-review.js"></script>
+<script>
+(function () {
+  // 검수 UI는 주소에 ?review 가 있을 때만 뜬다 → 공개 웹에는 절대 노출되지 않음(마커가 남아 있어도).
+  // 검수하려면: index.html?review=1 로 연다.
+  function init() {
+    if (!window.EditorReview) return;
+    if (!/[?&#]review\b/.test(location.search + location.hash)) return;
+    window.EditorReview.create({ doc: document, win: window, onChange: function () {} }).mount();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
 

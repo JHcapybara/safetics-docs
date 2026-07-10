@@ -34,6 +34,15 @@ if (!verMatch) {
 const VERSION = verMatch[1];
 const OUT = path.join(MANUAL_DIR, `TBM_앱_사용설명서_v${VERSION}.html`);
 
+// 검수 가드: /manual-update 자동반영분 중 미검수(data-rv 속성)가 남아 있으면 빌드 중단.
+// 승인=속성 제거, 반려=삭제/복원이므로, 모두 검수되면 data-rv가 하나도 없어야 한다.
+const rvPending = (html.match(/\bdata-rv=/g) || []).length;
+if (rvPending > 0) {
+  console.error(`오류: 미검수 자동반영 항목 ${rvPending}건이 남아 있습니다.`);
+  console.error('       index.html을 브라우저로 열어 검수(승인/반려)를 끝낸 뒤 다시 빌드하세요.');
+  process.exit(1);
+}
+
 // ---------------------------------------------------------------- 이미지 내장
 let embedded = 0;
 const missing = [];
@@ -446,6 +455,12 @@ result = result.replace('</body>',
   '<script id="__ef_engine">\n' + FIND_ENGINE + '\n</' + 'script>\n' +
   '<script id="__em_engine">\n' + MEDIA_ENGINE + '\n</' + 'script>\n' +
   HIDDEN_EDITOR + '\n</body>');
+
+// index.html의 검수 엔진 외부 참조(<script src="tools/editor-review.js">)는 최종본에선 파일이 없으므로
+// 인라인으로 치환(자기완결형 유지). 최종본엔 data-rv가 없어 실제로는 비활성(무해).
+const REVIEW_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-review.js'), 'utf8');
+result = result.replace(/<script src="tools\/editor-review\.js"><\/script>/,
+  '<script id="__rv_engine">\n' + REVIEW_ENGINE + '\n</' + 'script>');
 
 fs.writeFileSync(OUT, result, 'utf8');
 
