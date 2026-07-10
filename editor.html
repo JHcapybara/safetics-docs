@@ -319,6 +319,25 @@
     fileInput.value = '';
   });
 
+  // 편집기는 저장소 루트에 있으므로, 매뉴얼(admin/·app/ 등)의 상대 경로(img/...)가
+  // 그대로는 미리보기에서 깨진다. 첫 상대 이미지로 폴더를 탐지해 <base>를 주입한다
+  // (class __eui → 저장 시 자동 제거, 원본 파일에는 남지 않음).
+  function detectBase(html, cb) {
+    var m = html.match(/<img[^>]+src="(?!https?:|data:|\/)([^"]+)"/i);
+    if (!m) { cb(''); return; }
+    var rel = m[1];
+    var cands = ['admin/', 'app/', 'sfd/', ''];
+    var i = 0;
+    (function tryNext() {
+      if (i >= cands.length) { cb(''); return; }
+      var c = cands[i++];
+      var im = new Image();
+      im.onload = function () { cb(c); };
+      im.onerror = tryNext;
+      im.src = c + rel;
+    })();
+  }
+
   function loadText(text) {
     originalText = text;
     backedUp = false;
@@ -328,6 +347,15 @@
       scriptsTail += '\n' + m;
       return '';
     });
+    detectBase(stripped, function (base) { writeDoc(stripped, base); });
+  }
+
+  function writeDoc(stripped, base) {
+    if (base) {
+      var tag = '<base href="' + base + '" class="__eui">';
+      if (/<head[^>]*>/i.test(stripped)) stripped = stripped.replace(/<head[^>]*>/i, function (m) { return m + tag; });
+      else stripped = tag + stripped;
+    }
     var doc = frame.contentDocument;
     doc.open();
     doc.write(stripped);
