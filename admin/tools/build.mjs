@@ -179,6 +179,11 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
       '<span class="hsep"></span>' +
       '<button type="button" id="__he_clear">지우기</button>' +
       '<span class="hsep"></span>' +
+      '<span class="hlab">정렬</span>' +
+      '<button type="button" id="__he_alL" title="왼쪽">좌</button>' +
+      '<button type="button" id="__he_alC" title="가운데">중</button>' +
+      '<button type="button" id="__he_alR" title="오른쪽">우</button>' +
+      '<span class="hsep"></span>' +
       '<input id="__he_find" placeholder="찾을 용어">' +
       '<button type="button" id="__he_doFind" title="찾기 (Enter)">🔍</button>' +
       '<button type="button" id="__he_prev" title="이전 (Shift+Enter)">◀</button>' +
@@ -201,6 +206,9 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
     });
     document.getElementById('__he_bold').addEventListener('click', function () { exec('bold'); });
     document.getElementById('__he_clear').addEventListener('click', function () { exec('removeFormat'); });
+    document.getElementById('__he_alL').addEventListener('click', function () { exec('justifyLeft'); });
+    document.getElementById('__he_alC').addEventListener('click', function () { exec('justifyCenter'); });
+    document.getElementById('__he_alR').addEventListener('click', function () { exec('justifyRight'); });
     Array.prototype.forEach.call(bar.querySelectorAll('.hsw'), function (sw) {
       sw.addEventListener('click', function () { exec('foreColor', sw.getAttribute('data-color')); });
     });

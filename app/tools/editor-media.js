@@ -60,8 +60,15 @@
         '.__em_selbar button{background:#223052;color:#fff;border:1px solid #3a4a75;border-radius:6px;height:28px;padding:0 10px;font-size:12.5px;cursor:pointer;}' +
         '.__em_selbar button:hover{background:#2e3f68;}' +
         '.__em_selbar button.danger{border-color:#5a2330;background:#3a1a22;}' +
-        '.__em_selbar input[type=range]{width:110px;}' +
-        '.__em_selbar .__em_lab{color:#8fa0c5;}';
+        '.__em_selbar .__em_lab{color:#8fa0c5;}' +
+        '.__em_selbar button.on{background:#1f5eff;border-color:#1f5eff;font-weight:700;}' +
+        '.__em_handles{position:fixed;z-index:2147481500;pointer-events:none;outline:2px solid #1f5eff;box-shadow:0 0 0 1px rgba(255,255,255,.6) inset;}' +
+        '.__em_handles .__em_h{position:absolute;width:14px;height:14px;background:#1f5eff;border:2px solid #fff;border-radius:3px;pointer-events:auto;box-shadow:0 1px 3px rgba(0,0,0,.4);}' +
+        '.__em_h_nw{left:-8px;top:-8px;cursor:nwse-resize;}' +
+        '.__em_h_ne{right:-8px;top:-8px;cursor:nesw-resize;}' +
+        '.__em_h_sw{left:-8px;bottom:-8px;cursor:nesw-resize;}' +
+        '.__em_h_se{right:-8px;bottom:-8px;cursor:nwse-resize;}' +
+        '.__em_draglab{position:fixed;z-index:2147483600;background:#16213a;color:#fff;font:12px system-ui;padding:3px 8px;border-radius:6px;pointer-events:none;}';
       (doc.head || doc.documentElement).appendChild(s);
     }
     // 저장본에 유지되는 미디어 표시 CSS (한 번만).
@@ -224,58 +231,155 @@
       else { fig.style.width = pct + '%'; fig.style.maxWidth = pct + '%'; }
       onChange();
     }
-    function hasCaption(fig) { return !!fig.querySelector('figcaption'); }
     function toggleCaption(fig) {
       var c = fig.querySelector('figcaption');
       if (c) { c.remove(); } else { addCaption(fig, ''); }
       onChange();
     }
+    // 정렬: 폭이 100% 미만일 때 좌/가운데/우 배치. (figure는 block, margin auto 활용)
+    function alignOf(fig) {
+      var ml = fig.style.marginLeft, mr = fig.style.marginRight;
+      if (ml === '0px' || ml === '0') return 'left';
+      if (mr === '0px' || mr === '0') return 'right';
+      return 'center';
+    }
+    function setAlign(fig, a) {
+      fig.style.display = 'block';
+      fig.style.marginLeft = (a === 'left') ? '0' : 'auto';
+      fig.style.marginRight = (a === 'right') ? '0' : 'auto';
+      fig.style.textAlign = a;
+      onChange();
+    }
+
     function buildSelBar() {
       var bar = doc.createElement('div');
       bar.className = '__em_selbar';
       markUI(bar);
       bar.innerHTML =
-        '<span class="__em_lab">🖼 크기</span>' +
-        '<button data-w="30">S</button><button data-w="50">M</button>' +
-        '<button data-w="75">L</button><button data-w="100">원본</button>' +
-        '<input type="range" min="10" max="100" step="5" title="폭 %">' +
-        '<span class="__em_wv" style="min-width:34px;text-align:center">100%</span>' +
+        '<span class="__em_lab">정렬</span>' +
+        '<button data-al="left" title="좌측">좌</button>' +
+        '<button data-al="center" title="가운데">중</button>' +
+        '<button data-al="right" title="우측">우</button>' +
+        '<span class="__em_lab">|</span>' +
+        '<span class="__em_lab">크기</span>' +
+        '<span class="__em_wv" style="min-width:40px;text-align:center">100%</span>' +
+        '<button data-act="reset">원본크기</button>' +
+        '<span class="__em_lab">← 모서리 파란 점을 끌어 조절</span>' +
         '<span class="__em_lab">|</span>' +
         '<button data-act="cap">캡션</button>' +
         '<button data-act="replace">이미지 교체</button>' +
         '<button data-act="del" class="danger">삭제</button>' +
         '<button data-act="close">닫기</button>';
       doc.body.appendChild(bar);
-      var range = bar.querySelector('input[type=range]');
-      var wv = bar.querySelector('.__em_wv');
       bar.addEventListener('mousedown', function (e) { if (e.target.closest('button')) e.preventDefault(); });
       bar.addEventListener('click', function (e) {
         var b = e.target.closest('button'); if (!b || !selFig) return;
-        if (b.dataset.w) { var p = parseInt(b.dataset.w, 10); setWidth(selFig, p); range.value = p; wv.textContent = p + '%'; }
-        else if (b.dataset.act === 'cap') { toggleCaption(selFig); }
+        if (b.dataset.al) { setAlign(selFig, b.dataset.al); syncSelBar(); positionHandles(); }
+        else if (b.dataset.act === 'reset') { setWidth(selFig, 100); syncSelBar(); positionHandles(); }
+        else if (b.dataset.act === 'cap') { toggleCaption(selFig); positionHandles(); }
         else if (b.dataset.act === 'replace') { replaceImageIn(selFig); }
         else if (b.dataset.act === 'del') { selFig.remove(); hideSelBar(); onChange(); }
         else if (b.dataset.act === 'close') { hideSelBar(); }
       });
-      range.addEventListener('input', function () { wv.textContent = range.value + '%'; if (selFig) setWidth(selFig, parseInt(range.value, 10)); });
       return bar;
+    }
+    function syncSelBar() {
+      if (!selBar || !selFig) return;
+      selBar.querySelector('.__em_wv').textContent = widthOfFigurePct(selFig) + '%';
+      var al = alignOf(selFig);
+      Array.prototype.forEach.call(selBar.querySelectorAll('[data-al]'), function (b) {
+        b.classList.toggle('on', b.dataset.al === al);
+      });
     }
     function showSelBar(fig) {
       selFig = fig;
       if (!selBar) selBar = buildSelBar();
       selBar.style.display = 'flex';
-      var pct = widthOfFigurePct(fig);
-      selBar.querySelector('input[type=range]').value = pct;
-      selBar.querySelector('.__em_wv').textContent = pct + '%';
-      var repBtn = selBar.querySelector('[data-act=replace]');
-      repBtn.style.display = fig.querySelector('img') ? '' : 'none';
+      selBar.querySelector('[data-act=replace]').style.display = fig.querySelector('img') ? '' : 'none';
+      syncSelBar();
+      positionHandles();
     }
-    function hideSelBar() { if (selBar) selBar.style.display = 'none'; selFig = null; }
+    function hideSelBar() {
+      if (selBar) selBar.style.display = 'none';
+      if (handles) handles.style.display = 'none';
+      selFig = null;
+    }
+
+    // ---------------------------------------------------------------- 드래그 크기조절 핸들
+    var handles = null, drag = null, dragLab = null, suppressClick = false;
+    function resizeTarget(fig) {
+      return fig.querySelector('img, video') || fig.querySelector('.embed-16x9') || fig;
+    }
+    function buildHandles() {
+      var ov = doc.createElement('div'); ov.className = '__em_handles'; markUI(ov);
+      ['nw', 'ne', 'sw', 'se'].forEach(function (c) {
+        var h = doc.createElement('span'); h.className = '__em_h __em_h_' + c; h.dataset.c = c; ov.appendChild(h);
+      });
+      doc.body.appendChild(ov);
+      ov.addEventListener('mousedown', onHandleDown, true);
+      return ov;
+    }
+    function positionHandles() {
+      if (!selFig) { if (handles) handles.style.display = 'none'; return; }
+      var el = resizeTarget(selFig);
+      var r = el.getBoundingClientRect();
+      if (!handles) handles = buildHandles();
+      handles.style.display = 'block';
+      handles.style.left = r.left + 'px';
+      handles.style.top = r.top + 'px';
+      handles.style.width = r.width + 'px';
+      handles.style.height = r.height + 'px';
+    }
+    function onHandleDown(e) {
+      var h = e.target.closest('.__em_h'); if (!h || !selFig) return;
+      e.preventDefault(); e.stopPropagation();
+      suppressClick = true;   // 드래그 종료 직후 배경 click이 선택바를 닫지 않게
+      var el = resizeTarget(selFig);
+      var container = selFig.parentElement;
+      var startRect = el.getBoundingClientRect();
+      drag = {
+        corner: h.dataset.c,
+        startX: e.clientX,
+        startW: startRect.width,
+        contW: container ? container.getBoundingClientRect().width : startRect.width
+      };
+      win.addEventListener('mousemove', onDragMove, true);
+      win.addEventListener('mouseup', onDragUp, true);
+    }
+    function onDragMove(e) {
+      if (!drag) return;
+      var dx = e.clientX - drag.startX;
+      var dir = (drag.corner === 'ne' || drag.corner === 'se') ? 1 : -1; // 오른쪽 모서리는 +dx로 커짐
+      var newW = drag.startW + dir * dx;
+      var pct = Math.max(10, Math.min(100, Math.round(newW / (drag.contW || 1) * 100)));
+      setWidth(selFig, pct);
+      syncSelBar();
+      positionHandles();
+      showDragLab(e, pct);
+    }
+    function onDragUp() {
+      drag = null;
+      win.removeEventListener('mousemove', onDragMove, true);
+      win.removeEventListener('mouseup', onDragUp, true);
+      hideDragLab();
+      // mouseup 직후 발생할 수 있는 click 1회를 무시(선택바 유지). 그 다음 tick에 해제.
+      win.setTimeout(function () { suppressClick = false; }, 0);
+      onChange();
+    }
+    function showDragLab(e, pct) {
+      if (!dragLab) { dragLab = doc.createElement('div'); dragLab.className = '__em_draglab'; markUI(dragLab); doc.body.appendChild(dragLab); }
+      dragLab.style.display = 'block';
+      dragLab.style.left = (e.clientX + 14) + 'px';
+      dragLab.style.top = (e.clientY + 14) + 'px';
+      dragLab.textContent = pct + '%';
+    }
+    function hideDragLab() { if (dragLab) dragLab.style.display = 'none'; }
+    function reposition() { if (selFig) positionHandles(); }
 
     function replaceImageIn(fig) {
       var img = fig.querySelector('img'); if (!img) return;
       pickFile('image/*', function (file) {
-        imageToDataURL(file, function (data) { if (data) { img.src = data; onChange(); } });
+        imageToDataURL(file, function (data) { if (data) { img.src = data; onChange(); setTimeout(positionHandles, 60); } });
       });
     }
 
@@ -411,21 +515,28 @@
 
     // ---------------------------------------------------------------- 활성/정리
     function onClickDoc(e) {
+      if (suppressClick) return; // 드래그 리사이즈 직후의 click 무시
       var fig = figureOf(e.target);
       if (fig) { showSelBar(fig); }
-      else if (!e.target.closest('.__em_selbar')) { hideSelBar(); }
+      else if (!e.target.closest('.__eui')) { hideSelBar(); } // 편집기 UI(선택바·핸들·모달) 클릭은 유지
     }
     function enable() {
       ensureChromeStyle();
       if (!docClick) { docClick = onClickDoc; doc.addEventListener('click', docClick, true); }
       if (!selTrack) { selTrack = trackSelection; doc.addEventListener('selectionchange', selTrack); }
+      win.addEventListener('scroll', reposition, true);
+      win.addEventListener('resize', reposition);
     }
     function disable() {
       if (docClick) { doc.removeEventListener('click', docClick, true); docClick = null; }
       if (selTrack) { doc.removeEventListener('selectionchange', selTrack); selTrack = null; }
+      win.removeEventListener('scroll', reposition, true);
+      win.removeEventListener('resize', reposition);
       lastBlock = null;
       hideSelBar();
       if (selBar) { selBar.remove(); selBar = null; }
+      if (handles) { handles.remove(); handles = null; }
+      if (dragLab) { dragLab.remove(); dragLab = null; }
       if (modal) { modal.remove(); modal = null; }
     }
 
