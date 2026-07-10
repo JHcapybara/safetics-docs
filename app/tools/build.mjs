@@ -447,8 +447,9 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
 })();
 </script>`;
 
-// 공용 엔진(editor-find.js·editor-media.js)을 숨김 편집기보다 먼저 인라인 주입 (최종본은 자기완결형이라 외부 참조 불가)
-const TOOLS_DIR = path.dirname(fileURLToPath(import.meta.url));
+// 공용 엔진(editor-find/media/review.js)은 저장소 루트 tools/ 에 단일 소스로 있다.
+// 최종본은 자기완결형이라 외부 참조 불가 → 인라인 주입한다.
+const TOOLS_DIR = path.join(MANUAL_DIR, '..', 'tools');
 const FIND_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-find.js'), 'utf8');
 const MEDIA_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-media.js'), 'utf8');
 result = result.replace('</body>',
@@ -456,10 +457,10 @@ result = result.replace('</body>',
   '<script id="__em_engine">\n' + MEDIA_ENGINE + '\n</' + 'script>\n' +
   HIDDEN_EDITOR + '\n</body>');
 
-// index.html의 검수 엔진 외부 참조(<script src="tools/editor-review.js">)는 최종본에선 파일이 없으므로
+// index.html의 검수 엔진 외부 참조(<script src="../tools/editor-review.js">)는 최종본에선 파일이 없으므로
 // 인라인으로 치환(자기완결형 유지). 최종본엔 data-rv가 없어 실제로는 비활성(무해).
 const REVIEW_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-review.js'), 'utf8');
-result = result.replace(/<script src="tools\/editor-review\.js"><\/script>/,
+result = result.replace(/<script src="\.\.\/tools\/editor-review\.js"><\/script>/,
   '<script id="__rv_engine">\n' + REVIEW_ENGINE + '\n</' + 'script>');
 
 fs.writeFileSync(OUT, result, 'utf8');

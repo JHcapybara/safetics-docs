@@ -8,17 +8,20 @@ GitHub Pages로 공개 배포되며, 표지(`index.html`)에서 각 매뉴얼로
 ```
 safetics-docs/
 ├─ index.html            표지(랜딩) — 각 매뉴얼 링크
+├─ editor.html           비개발자용 GUI 편집기 (루트 1개, 파일 선택기로 아무 매뉴얼이나 편집)
 ├─ CLAUDE.md             이 파일 (허브 공통 규칙)
 ├─ .claude/commands/     /manual-update 등 명령
-├─ tools/                (허브 공용 도구 — 필요 시)
+├─ tools/                공용 편집 엔진 3종(단일 소스): editor-find/media/review.js
 ├─ .github/workflows/    Pages 자동 배포
 ├─ admin/                TBM 관리자 매뉴얼  ↔ 코드 레포: tbmadmin (JHcapybara/tbmadmin)
 ├─ app/                  TBM 앱 매뉴얼  ↔ 코드 레포: safeticsTBM (JHcapybara/safeticsTBM)
 └─ sfd/                  SFD 매뉴얼 (준비 중)  ↔ 코드 레포: (SFD 레포)
 ```
 
-각 매뉴얼 폴더는 자기완결형이다: `index.html`(원본), `img/`, `editor.html`, `tools/`(빌드),
-`readme.txt`, `CLAUDE.md`(그 매뉴얼 전용 상세 규칙), 빌드된 최종본 `*_vX.XX.html`.
+편집 도구는 **루트에 단일화**돼 있다: `editor.html`(GUI 편집기) + `tools/`(공용 엔진 3종).
+각 매뉴얼 폴더는 콘텐츠 자체(`index.html` 원본, `img/`, `sync-state.json`, `tools/build.mjs`·`import.mjs`,
+`readme.txt`, `CLAUDE.md`, 빌드된 최종본 `*_vX.XX.html`)를 갖는다. index.html·editor.html·build는
+공용 엔진을 루트 `../tools/`(빌드는 인라인 주입)로 참조한다.
 
 ## 매뉴얼 = 코드 레포 매핑 (자동 업데이트용)
 

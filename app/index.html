@@ -770,9 +770,9 @@
     </article>
   </section>
 
-  <!-- manual-version: 1.02 -->
+  <!-- manual-version: 1.03 -->
   <footer class="doc-foot">
-    TBM 앱 사용 설명서 · <span id="docVersion">문서 버전 1.02</span> · 문서에 없는 문제는 사내 문의 채널로 화면 캡처와 함께 알려주세요.<br>
+    TBM 앱 사용 설명서 · <span id="docVersion">문서 버전 1.03</span> · 문서에 없는 문제는 사내 문의 채널로 화면 캡처와 함께 알려주세요.<br>
     빌드(공유용 최종본): 이 폴더에서 <code>node tools/build.mjs</code> → <code>TBM_앱_사용설명서_v{버전}.html</code> 생성.
   </footer>
 </main>
@@ -894,7 +894,7 @@
 </script>
 
 <!-- ============ 검수 레이어: /manual-update 자동반영분 승인/반려 (data-rv 있을 때만 표시) ============ -->
-<script src="tools/editor-review.js"></script>
+<script src="../tools/editor-review.js"></script>
 <script>
 (function () {
   // 검수 UI는 주소에 ?review 가 있을 때만 뜬다 → 공개 웹에는 절대 노출되지 않음(마커가 남아 있어도).
@@ -925,6 +925,7 @@
       '.pager{display:flex;gap:12px;justify-content:space-between;margin:48px 0 24px;}' +
       '.pager button{flex:1;max-width:49%;background:var(--card,#fff);border:1px solid var(--line,#e3e8ef);border-radius:12px;padding:14px 18px;cursor:pointer;font:inherit;color:inherit;transition:border-color .12s,box-shadow .12s;}' +
       '.pager button:hover{border-color:var(--brand,#1f5eff);box-shadow:0 4px 14px rgba(20,40,80,.08);}' +
+      '.pager .pg-prev{text-align:left;}' +
       '.pager .pg-next{text-align:right;margin-left:auto;}' +
       '.pager .pg-k{display:block;font-size:12px;color:var(--ink-soft,#5a6472);margin-bottom:3px;}' +
       '.pager .pg-t{font-weight:700;color:var(--brand,#1f5eff);}' +
