@@ -2055,7 +2055,10 @@
         '.__fmt_menu button:hover{background:#eef2f8;}' +
         '.__fmt_menu button[disabled]{color:#b6bec9;cursor:default;background:none;}' +
         '.__fmt_menu .div{height:1px;background:#e7eaf0;margin:4px 6px;}' +
-        '.__fmt_mark{outline:2px solid #1f5eff;outline-offset:2px;border-radius:4px;}';
+        '.__fmt_mark{outline:2px solid #1f5eff;outline-offset:2px;border-radius:4px;}' +
+        '.__fmt_plus{position:fixed;z-index:2147483250;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;' +
+          'background:#fff;color:#64748b;border:1px solid #d0d7e2;box-shadow:0 2px 8px rgba(20,28,40,.14);cursor:pointer;font:16px/1 system-ui;padding:0;user-select:none;}' +
+        '.__fmt_plus:hover{color:#1f5eff;border-color:#1f5eff;background:#f0f5ff;}';
       (doc.head || doc.documentElement).appendChild(s);
     }
 
@@ -2135,24 +2138,35 @@
     // Ctrl+Z 시 로그 최상단이 스타일이면 우리가 되돌리고, 네이티브면 브라우저에 넘긴다.
     // 네이티브 편집 단위는 input 이벤트의 inputType으로 근사(historyUndo/Redo 제외,
     // 연속 타이핑은 1초 이내 같은 종류를 한 단위로 그룹).
-    var undoOps = [], redoOps = [];        // 스타일 op 데이터 (LIFO)
+    var undoOps = [], redoOps = [];        // op {undo,redo,alive} (LIFO)
     var editLog = [], redoLog = [];        // {kind:'style'|'native'} 순서 로그
     var lastNativeT = 0, lastNativeType = '';
-    function applyItems(items) {           // 적용하며 이전 값 반환(역방향 기록)
-      return items.map(function (it) {
-        var cur = {};
-        for (var k in it.props) {
-          cur[k] = it.el.style[k] || '';
-          it.el.style[k] = it.props[k];
-        }
-        return { el: it.el, props: cur };
-      });
-    }
-    function setStylesUndoable(items) {    // items: [{el, props:{prop:새값}}]
-      undoOps.push({ items: applyItems(items) });
+    function pushOp(op) {
+      undoOps.push(op);
       editLog.push({ kind: 'style' });
       redoOps.length = 0; redoLog.length = 0; lastNativeType = '';
       onChange();
+    }
+    function setStylesUndoable(items) {    // items: [{el, props:{prop:새값}}]
+      var olds = items.map(function (it) {
+        var o = {};
+        for (var k in it.props) { o[k] = it.el.style[k] || ''; it.el.style[k] = it.props[k]; }
+        return o;
+      });
+      pushOp({
+        undo: function () { items.forEach(function (it, i) { for (var k in it.props) it.el.style[k] = olds[i][k]; }); },
+        redo: function () { items.forEach(function (it) { for (var k in it.props) it.el.style[k] = it.props[k]; }); },
+        alive: function () { return items.every(function (it) { return doc.contains(it.el); }); }
+      });
+    }
+    function insertBlockUndoable(node, refAfter) {   // refAfter 바로 다음에 node 삽입 (Ctrl+Z 가능)
+      refAfter.parentNode.insertBefore(node, refAfter.nextSibling);
+      var parent = node.parentNode;
+      pushOp({
+        undo: function () { node.remove(); },
+        redo: function () { parent.insertBefore(node, refAfter.nextSibling); },
+        alive: function () { return doc.contains(parent); }
+      });
     }
     function onNativeInput(e) {
       var it = (e && e.inputType) || '';
@@ -2181,10 +2195,11 @@
         if (top.kind === 'style') {
           var op = undoOps[undoOps.length - 1];
           editLog.pop();
-          if (op && op.items.every(function (it) { return doc.contains(it.el); })) {
+          if (op && op.alive()) {
             e.preventDefault(); e.stopPropagation();
             undoOps.pop();
-            redoOps.push({ items: applyItems(op.items) });
+            op.undo();
+            redoOps.push(op);
             redoLog.push({ kind: 'style' });
             onChange(); syncLH(); syncSize();
           }
@@ -2198,10 +2213,11 @@
         if (rtop.kind === 'style') {
           var r = redoOps[redoOps.length - 1];
           redoLog.pop();
-          if (r && r.items.every(function (it) { return doc.contains(it.el); })) {
+          if (r && r.alive()) {
             e.preventDefault(); e.stopPropagation();
             redoOps.pop();
-            undoOps.push({ items: applyItems(r.items) });
+            r.redo();
+            undoOps.push(r);
             editLog.push({ kind: 'style' });
             onChange(); syncLH(); syncSize();
           }
@@ -2754,6 +2770,61 @@
       ]);
     }
 
+    // ---------------------------------------------------------------- 문단 hover + 버튼 (노션식)
+    var plusBtn = null, plusTarget = null, plusRaf = 0;
+    // li/td 등 내부 요소는 상위 컨테이너(목록/표) 뒤에 문단을 넣는다
+    function plusAnchor(blk) {
+      var inner = blk.closest('li,td,th,dt,dd');
+      if (inner) { var c = inner.closest('table,ul,ol,dl'); if (c) return c; }
+      return blk.closest('figure,table,div.ed-callout') || blk;
+    }
+    function ensurePlus() {
+      if (plusBtn) return plusBtn;
+      ensureStyle();
+      plusBtn = doc.createElement('button');
+      plusBtn.type = 'button';
+      plusBtn.className = '__fmt_plus';
+      markUI(plusBtn);
+      plusBtn.textContent = '+';
+      plusBtn.title = '아래에 새 문단 추가';
+      plusBtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      plusBtn.addEventListener('click', function () {
+        if (!plusTarget || !doc.contains(plusTarget)) return;
+        var np = doc.createElement('p');
+        np.innerHTML = '<br>';
+        insertBlockUndoable(np, plusTarget);
+        var r = doc.createRange(); r.selectNodeContents(np); r.collapse(true);
+        var s = selection(); s.removeAllRanges(); s.addRange(r);
+        positionPlus(np);
+      });
+      doc.body.appendChild(plusBtn);
+      return plusBtn;
+    }
+    function positionPlus(anchor) {
+      plusTarget = anchor;
+      var b = ensurePlus();
+      var r = anchor.getBoundingClientRect();
+      b.style.display = 'flex';
+      b.style.left = Math.max(4, r.left - 30) + 'px';
+      b.style.top = (r.top + Math.min(r.height / 2, 14) - 11) + 'px';
+    }
+    function hidePlus() { if (plusBtn) plusBtn.style.display = 'none'; plusTarget = null; }
+    function onMove(e) {
+      if (!enabled) return;
+      if (plusRaf) return;
+      plusRaf = win.requestAnimationFrame(function () {
+        plusRaf = 0;
+        var t = e.target;
+        if (!t || !t.closest) return;
+        if (t.closest('.__fmt_plus')) return;                      // 버튼 위 → 유지
+        if (t.closest('.__eui, .__he')) { hidePlus(); return; }
+        var blk = paraOf(t);
+        if (!blk) { hidePlus(); return; }
+        var a = plusAnchor(blk);
+        if (a !== plusTarget) positionPlus(a);
+      });
+    }
+
     // ---------------------------------------------------------------- on/off
     function onDocMouseDown(e) {
       if (menu && !e.target.closest('.__fmt_menu')) closeMenu();
@@ -2763,7 +2834,10 @@
         if (!e.target.closest('.__eui')) hideBar();
       }
     }
-    function onScroll() { if (bar && bar.style.display !== 'none') positionBar(); }
+    function onScroll() {
+      if (bar && bar.style.display !== 'none') positionBar();
+      if (plusTarget && doc.contains(plusTarget)) positionPlus(plusTarget);
+    }
 
     function enable() {
       if (enabled) return;
@@ -2774,6 +2848,7 @@
       doc.addEventListener('mousedown', onDocMouseDown, true);
       doc.addEventListener('keydown', onUndoKey, true);
       doc.addEventListener('input', onNativeInput, true);
+      doc.addEventListener('mousemove', onMove, true);
       win.addEventListener('scroll', onScroll, true);
       win.addEventListener('resize', onScroll);
     }
@@ -2784,8 +2859,10 @@
       doc.removeEventListener('mousedown', onDocMouseDown, true);
       doc.removeEventListener('keydown', onUndoKey, true);
       doc.removeEventListener('input', onNativeInput, true);
+      doc.removeEventListener('mousemove', onMove, true);
       win.removeEventListener('scroll', onScroll, true);
       win.removeEventListener('resize', onScroll);
+      if (plusBtn) { plusBtn.remove(); plusBtn = null; plusTarget = null; }
       undoOps.length = 0; redoOps.length = 0; editLog.length = 0; redoLog.length = 0;
       closeMenu(); closePop();
       if (bar) { bar.remove(); bar = null; }
