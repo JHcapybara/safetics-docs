@@ -2410,6 +2410,55 @@
       onChange();
     }
 
+    // ---------------------------------------------------------------- 코드 서식
+    // 문서에 code/pre 스타일이 이미 있으면 존중, 없으면 기본 스타일 1회 주입(저장본 유지).
+    function ensureCodeStyle() {
+      if (doc.getElementById('__code_css')) return;
+      var probe = doc.createElement('code');
+      probe.textContent = 'x';
+      probe.style.position = 'absolute'; probe.style.left = '-9999px';
+      doc.body.appendChild(probe);
+      var cs = win.getComputedStyle(probe);
+      var styled = cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent';
+      probe.remove();
+      if (styled) return;   // 문서 자체 code 스타일 존재
+      var s = doc.createElement('style');
+      s.id = '__code_css';
+      s.textContent =
+        'code{background:#f1f5f9;border-radius:4px;padding:.1em .35em;font-family:Consolas,"D2Coding",monospace;font-size:.88em;}' +
+        'pre{background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;overflow-x:auto;font-size:.85rem;font-family:Consolas,"D2Coding",monospace;}' +
+        'pre code{background:none;padding:0;}';
+      (doc.head || doc.documentElement).appendChild(s);
+      onChange();
+    }
+    function toggleInlineCode() {
+      var sel = restoreRange();
+      if (!sel.rangeCount) return;
+      var a = sel.anchorNode, f = sel.focusNode;
+      var ae = a && (a.nodeType === 1 ? a : a.parentElement);
+      var fe = f && (f.nodeType === 1 ? f : f.parentElement);
+      var codeEl = ae && ae.closest('code');
+      var fCode = fe && fe.closest('code');
+      if (codeEl && codeEl === fCode) {
+        // 이미 코드 → 해제 (자체 undo)
+        var parent = codeEl.parentNode, next = codeEl.nextSibling;
+        var kids = [];
+        while (codeEl.firstChild) { kids.push(codeEl.firstChild); parent.insertBefore(codeEl.firstChild, codeEl); }
+        codeEl.remove();
+        pushOp({
+          undo: function () { kids.forEach(function (k) { codeEl.appendChild(k); }); parent.insertBefore(codeEl, next); },
+          redo: function () { while (codeEl.firstChild) parent.insertBefore(codeEl.firstChild, codeEl); codeEl.remove(); },
+          alive: function () { return doc.contains(parent); }
+        });
+        return;
+      }
+      if (sel.isCollapsed || !String(sel).trim()) { toast('코드로 만들 텍스트를 선택하세요.'); return; }
+      ensureCodeStyle();
+      var txt = String(sel);
+      try { doc.execCommand('insertHTML', false, '<code>' + esc(txt) + '</code>'); } catch (e) {}
+      onChange();
+    }
+
     // ---------------------------------------------------------------- 표 열 너비 드래그 조절
     var colDrag = null, colEdgeOn = false;
     // 셀 오른쪽 테두리 ±5px 안이면 리사이즈 대상 (마지막 열 제외)
@@ -2596,9 +2645,10 @@
       var sws = COLORS.map(function (c) { return '<button type="button" class="sw" data-c="' + c + '" style="background:' + c + '"></button>'; }).join('');
       b.innerHTML =
         '<div class="frow">' +
-        '<select class="__fmt_blk"><option value="">문단</option><option value="h4">제목</option><option value="p">본문</option><option value="note">주석</option></select>' +
+        '<select class="__fmt_blk"><option value="">문단</option><option value="h4">제목</option><option value="p">본문</option><option value="note">주석</option><option value="pre">코드 블록</option></select>' +
         '<select class="__fmt_size">' + sizeOpts + '</select>' +
         '<button type="button" data-a="bold"><b>B</b></button>' +
+        '<button type="button" data-a="code" title="인라인 코드 (선택 텍스트를 코드로/해제)">&lt;/&gt;</button>' +
         '<span class="sep"></span>' + sws +
         '<span class="sep"></span>' +
         '<button type="button" data-a="al" data-v="justifyLeft" title="왼쪽 정렬"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M2 7h6M2 10.5h9"/></svg></button>' +
@@ -2624,6 +2674,7 @@
         var btn = e.target.closest('button'); if (!btn) return;
         var a = btn.dataset.a;
         if (a === 'bold') exec('bold');
+        else if (a === 'code') toggleInlineCode();
         else if (a === 'clear') exec('removeFormat');
         else if (a === 'al') exec(btn.dataset.v);
         else if (btn.dataset.c) applyColor(btn.dataset.c);
@@ -2640,6 +2691,7 @@
           var el = currentBlock();
           if (el) setStylesUndoable([{ el: el, props: { color: '#8a94a3', fontSize: '13px' } }]);
         } else {
+          if (v === 'pre') ensureCodeStyle();
           var el2 = currentBlock();
           if (el2) { el2.style.color = ''; el2.style.fontSize = ''; }
           exec('formatBlock', v);
