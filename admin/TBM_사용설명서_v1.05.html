@@ -2720,7 +2720,17 @@
           var el = currentBlock();
           if (el) setStylesUndoable([{ el: el, props: { color: '#8a94a3', fontSize: '13px' } }]);
         } else {
-          if (v === 'pre') ensureCodeStyle();
+          if (v === 'pre') {
+            ensureCodeStyle();
+            // 문단 "일부"만 선택된 상태면 통째 변환 대신 선택 영역만 인라인 코드로
+            var s2 = restoreRange();
+            var blk2 = currentBlock();
+            var selTxt = s2 && !s2.isCollapsed ? String(s2).trim() : '';
+            if (selTxt && blk2 && selTxt !== blk2.textContent.trim()) {
+              toggleInlineCode();
+              return;
+            }
+          }
           var el2 = currentBlock();
           if (el2) { el2.style.color = ''; el2.style.fontSize = ''; }
           exec('formatBlock', v);
