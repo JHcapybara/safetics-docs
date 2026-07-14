@@ -2029,8 +2029,11 @@
       var s = doc.createElement('style');
       s.id = '__fmt_style'; s.className = '__eui';
       s.textContent =
-        '.__fmt_bar{position:fixed;z-index:2147483300;display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:min(96vw,640px);' +
-          'background:#16213a;color:#fff;padding:7px 10px;border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.4);font-family:system-ui,"Malgun Gothic",sans-serif;font-size:12.5px;}' +
+        '.__fmt_bar{position:fixed;z-index:2147483300;display:flex;flex-direction:column;gap:6px;max-width:min(96vw,640px);' +
+          'background:#16213a;color:#fff;padding:8px 10px;border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.4);font-family:system-ui,"Malgun Gothic",sans-serif;font-size:12.5px;}' +
+        '.__fmt_bar .frow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}' +
+        '.__fmt_bar .frow2{border-top:1px solid #2a3a60;padding-top:6px;}' +
+        '.__fmt_bar .flab{color:#8fa0c5;font-size:11px;letter-spacing:.04em;margin-right:2px;}' +
         '.__fmt_bar select,.__fmt_bar input{background:#223052;color:#fff;border:1px solid #3a4a75;border-radius:6px;padding:3px 5px;font-size:12px;outline:none;}' +
         '.__fmt_bar input.__fmt_lhv{width:48px;text-align:center;}' +
         '.__fmt_bar button{background:#223052;color:#fff;border:1px solid #3a4a75;border-radius:6px;min-width:26px;height:26px;font-size:12.5px;cursor:pointer;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;gap:3px;}' +
@@ -2107,6 +2110,11 @@
         }
       }
       if (!out.length && single) out.push(single);
+      // 콜아웃/일반 div처럼 p·h·li가 없는 컨테이너 안 선택 → 그 컨테이너를 블록으로 취급
+      if (!out.length && rootEl && rootEl !== doc.body) {
+        var g = rootEl.closest('div,section,article,blockquote,figure');
+        if (g && g !== doc.body && !g.closest('.__eui, .__he')) out.push(g);
+      }
       return out;
     }
 
@@ -2116,6 +2124,92 @@
       doc.execCommand(cmd, false, val || null);
       onChange();
       if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
+    }
+
+    // ---- 스타일 변경용 자체 undo/redo ----
+    // 인라인 style 대입은 designMode 네이티브 undo 스택에 안 올라간다. (insertHTML로
+    // 블록을 통째 교체하는 우회는 이웃 문단을 병합·훼손해서 폐기.) 대신 변경 전 값을
+    // 기록해 두고 Ctrl+Z/Ctrl+Y를 가로챈다. 우리 스타일 작업이 마지막 편집(타이핑 등
+    // 네이티브 input 이후)일 때만 우리가 되돌리고, 아니면 네이티브 undo에 넘긴다.
+    // 통합 편집 로그: 스타일 op와 네이티브 편집(타이핑 등)의 "순서"를 기록해 두고,
+    // Ctrl+Z 시 로그 최상단이 스타일이면 우리가 되돌리고, 네이티브면 브라우저에 넘긴다.
+    // 네이티브 편집 단위는 input 이벤트의 inputType으로 근사(historyUndo/Redo 제외,
+    // 연속 타이핑은 1초 이내 같은 종류를 한 단위로 그룹).
+    var undoOps = [], redoOps = [];        // 스타일 op 데이터 (LIFO)
+    var editLog = [], redoLog = [];        // {kind:'style'|'native'} 순서 로그
+    var lastNativeT = 0, lastNativeType = '';
+    function applyItems(items) {           // 적용하며 이전 값 반환(역방향 기록)
+      return items.map(function (it) {
+        var cur = {};
+        for (var k in it.props) {
+          cur[k] = it.el.style[k] || '';
+          it.el.style[k] = it.props[k];
+        }
+        return { el: it.el, props: cur };
+      });
+    }
+    function setStylesUndoable(items) {    // items: [{el, props:{prop:새값}}]
+      undoOps.push({ items: applyItems(items) });
+      editLog.push({ kind: 'style' });
+      redoOps.length = 0; redoLog.length = 0; lastNativeType = '';
+      onChange();
+    }
+    function onNativeInput(e) {
+      var it = (e && e.inputType) || '';
+      if (it === 'historyUndo' || it === 'historyRedo') return;   // undo/redo 자체는 편집이 아님
+      if (e && e.target && e.target.closest && e.target.closest('.__eui, .__he')) return;
+      var now = Date.now();
+      var typing = it === 'insertText' || it === 'insertCompositionText' ||
+                   it === 'deleteContentBackward' || it === 'deleteContentForward';
+      var top = editLog[editLog.length - 1];
+      if (typing && lastNativeType === it && now - lastNativeT < 1000 && top && top.kind === 'native') {
+        lastNativeT = now;                                        // 같은 타이핑 그룹 → 단위 유지
+      } else {
+        editLog.push({ kind: 'native' });
+        lastNativeT = now; lastNativeType = it;
+      }
+      redoOps.length = 0; redoLog.length = 0;
+    }
+    function onUndoKey(e) {
+      if (!(e.ctrlKey || e.metaKey) || !e.key) return;
+      var k = e.key.toLowerCase();
+      var isUndo = k === 'z' && !e.shiftKey;
+      var isRedo = k === 'y' || (k === 'z' && e.shiftKey);
+      if (isUndo) {
+        var top = editLog[editLog.length - 1];
+        if (!top) return;                                         // 로그 없음 → 네이티브에 맡김
+        if (top.kind === 'style') {
+          var op = undoOps[undoOps.length - 1];
+          editLog.pop();
+          if (op && op.items.every(function (it) { return doc.contains(it.el); })) {
+            e.preventDefault(); e.stopPropagation();
+            undoOps.pop();
+            redoOps.push({ items: applyItems(op.items) });
+            redoLog.push({ kind: 'style' });
+            onChange(); syncLH(); syncSize();
+          }
+        } else {
+          editLog.pop(); redoLog.push({ kind: 'native' });        // 네이티브 undo 통과
+          lastNativeType = '';
+        }
+      } else if (isRedo) {
+        var rtop = redoLog[redoLog.length - 1];
+        if (!rtop) return;
+        if (rtop.kind === 'style') {
+          var r = redoOps[redoOps.length - 1];
+          redoLog.pop();
+          if (r && r.items.every(function (it) { return doc.contains(it.el); })) {
+            e.preventDefault(); e.stopPropagation();
+            redoOps.pop();
+            undoOps.push({ items: applyItems(r.items) });
+            editLog.push({ kind: 'style' });
+            onChange(); syncLH(); syncSize();
+          }
+        } else {
+          redoLog.pop(); editLog.push({ kind: 'native' });        // 네이티브 redo 통과
+          lastNativeType = '';
+        }
+      }
     }
 
     // ---------------------------------------------------------------- 행간
@@ -2136,8 +2230,9 @@
     function applyLineHeight(pct) {
       var blocks = blocksInRange();
       if (!blocks.length) { toast('행간을 적용할 문단이 없습니다.'); return; }
-      blocks.forEach(function (b) { b.style.lineHeight = pct + '%'; });
-      onChange();
+      setStylesUndoable(blocks.map(function (b) {
+        return { el: b, props: { lineHeight: pct + '%' } };
+      }));
     }
     function syncLH() {
       if (!bar) return;
@@ -2163,7 +2258,7 @@
       if (!sel.rangeCount) return;
       if (sel.isCollapsed) {
         var blk = currentBlock();
-        if (blk) { blk.style.fontSize = px + 'px'; onChange(); }
+        if (blk) setStylesUndoable([{ el: blk, props: { fontSize: px + 'px' } }]);
         return;
       }
       try { doc.execCommand('styleWithCSS', false, true); } catch (e) {}
@@ -2447,6 +2542,7 @@
       var lhOpts = '<option value=""></option>' + LHS.map(function (l) { return '<option value="' + l + '">' + l + '%</option>'; }).join('') + '<option value="custom">직접</option>';
       var sws = COLORS.map(function (c) { return '<button type="button" class="sw" data-c="' + c + '" style="background:' + c + '"></button>'; }).join('');
       b.innerHTML =
+        '<div class="frow">' +
         '<select class="__fmt_blk"><option value="">문단</option><option value="h4">제목</option><option value="p">본문</option><option value="note">주석</option></select>' +
         '<select class="__fmt_size">' + sizeOpts + '</select>' +
         '<button type="button" data-a="bold"><b>B</b></button>' +
@@ -2458,11 +2554,14 @@
         '<span class="sep"></span>' +
         '<span title="행간">↕</span><select class="__fmt_lh">' + lhOpts + '</select><input class="__fmt_lhv" type="number" min="80" max="400" placeholder="%">' +
         '<span class="sep"></span>' +
-        '<button type="button" data-a="table" title="표">▦ 표</button>' +
-        '<button type="button" data-a="callout" title="콜아웃">▍콜아웃</button>' +
-        (onMedia ? '<button type="button" data-a="media" title="미디어 삽입">➕ 미디어</button>' : '') +
-        '<span class="sep"></span>' +
-        '<button type="button" data-a="clear" title="서식 지우기">지우기</button>';
+        '<button type="button" data-a="clear" title="선택한 글자의 색·크기·굵게 등 서식을 원래대로 되돌립니다">서식 지우기</button>' +
+        '</div>' +
+        '<div class="frow frow2">' +
+        '<span class="flab">추가</span>' +
+        '<button type="button" data-a="table" title="표 삽입 / 표 안에서는 행·열·병합">▦ 표</button>' +
+        '<button type="button" data-a="callout" title="문단을 콜아웃 박스로">▍콜아웃</button>' +
+        (onMedia ? '<button type="button" data-a="media" title="이미지·유튜브·동영상 삽입">🖼 미디어</button>' : '') +
+        '</div>';
       doc.body.appendChild(b);
 
       b.addEventListener('mousedown', function (e) {
@@ -2486,7 +2585,7 @@
         if (v === 'note') {
           exec('formatBlock', 'p');
           var el = currentBlock();
-          if (el) { el.style.color = '#8a94a3'; el.style.fontSize = '13px'; onChange(); }
+          if (el) setStylesUndoable([{ el: el, props: { color: '#8a94a3', fontSize: '13px' } }]);
         } else {
           var el2 = currentBlock();
           if (el2) { el2.style.color = ''; el2.style.fontSize = ''; }
@@ -2544,8 +2643,9 @@
         var sel = selection();
         if (!sel || !sel.rangeCount || !sel.anchorNode || !doc.body.contains(sel.anchorNode) || inUI(sel.anchorNode)) return;
         keepRange();
-        // 캐럿이 블록 밖(래퍼 div 등)이어도, 드래그 선택이 블록들을 걸치면 바를 띄운다
-        if (!currentBlock() && (sel.isCollapsed || !blocksInRange().length)) { hideBar(); return; }
+        // 캐럿(포커스)만으로는 띄우지 않는다 — 1글자 이상 드래그 선택 시에만 표시.
+        // 콜아웃 등 p/h 없는 컨테이너 안 선택도 텍스트만 있으면 띄운다.
+        if (sel.isCollapsed || !String(sel).trim()) { hideBar(); return; }
         showBar();
       }, 140);
     }
@@ -2672,6 +2772,8 @@
       doc.addEventListener('selectionchange', onSelChange);
       doc.addEventListener('contextmenu', onContextMenu, true);
       doc.addEventListener('mousedown', onDocMouseDown, true);
+      doc.addEventListener('keydown', onUndoKey, true);
+      doc.addEventListener('input', onNativeInput, true);
       win.addEventListener('scroll', onScroll, true);
       win.addEventListener('resize', onScroll);
     }
@@ -2680,8 +2782,11 @@
       doc.removeEventListener('selectionchange', onSelChange);
       doc.removeEventListener('contextmenu', onContextMenu, true);
       doc.removeEventListener('mousedown', onDocMouseDown, true);
+      doc.removeEventListener('keydown', onUndoKey, true);
+      doc.removeEventListener('input', onNativeInput, true);
       win.removeEventListener('scroll', onScroll, true);
       win.removeEventListener('resize', onScroll);
+      undoOps.length = 0; redoOps.length = 0; editLog.length = 0; redoLog.length = 0;
       closeMenu(); closePop();
       if (bar) { bar.remove(); bar = null; }
     }
