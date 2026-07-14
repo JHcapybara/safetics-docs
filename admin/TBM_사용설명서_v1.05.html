@@ -2808,7 +2808,22 @@
       b.style.left = Math.max(4, r.left - 30) + 'px';
       b.style.top = (r.top + Math.min(r.height / 2, 14) - 11) + 'px';
     }
-    function hidePlus() { if (plusBtn) plusBtn.style.display = 'none'; plusTarget = null; }
+    function hidePlus() {
+      if (plusHideT) { win.clearTimeout(plusHideT); plusHideT = null; }
+      if (plusBtn) plusBtn.style.display = 'none';
+      plusTarget = null;
+    }
+    var plusHideT = null;
+    function scheduleHidePlus() {                                  // 즉시 숨기지 않고 유예 — 버튼까지 이동할 시간
+      if (plusHideT) return;
+      plusHideT = win.setTimeout(function () { plusHideT = null; hidePlus(); }, 450);
+    }
+    function cancelHidePlus() { if (plusHideT) { win.clearTimeout(plusHideT); plusHideT = null; } }
+    function inPlusCorridor(x, y) {                                // 문단 왼쪽 여백(버튼으로 가는 길)인가
+      if (!plusTarget || !doc.contains(plusTarget)) return false;
+      var r = plusTarget.getBoundingClientRect();
+      return x >= r.left - 48 && x <= r.right && y >= r.top - 10 && y <= r.bottom + 10;
+    }
     function onMove(e) {
       if (!enabled) return;
       if (plusRaf) return;
@@ -2816,10 +2831,15 @@
         plusRaf = 0;
         var t = e.target;
         if (!t || !t.closest) return;
-        if (t.closest('.__fmt_plus')) return;                      // 버튼 위 → 유지
-        if (t.closest('.__eui, .__he')) { hidePlus(); return; }
+        if (t.closest('.__fmt_plus')) { cancelHidePlus(); return; }   // 버튼 위 → 유지
+        if (t.closest('.__eui, .__he')) { scheduleHidePlus(); return; }
         var blk = paraOf(t);
-        if (!blk) { hidePlus(); return; }
+        if (!blk) {
+          if (inPlusCorridor(e.clientX, e.clientY)) { cancelHidePlus(); return; }  // 버튼으로 가는 중
+          scheduleHidePlus();
+          return;
+        }
+        cancelHidePlus();
         var a = plusAnchor(blk);
         if (a !== plusTarget) positionPlus(a);
       });
