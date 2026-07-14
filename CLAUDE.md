@@ -11,14 +11,14 @@ safetics-docs/
 ├─ editor.html           비개발자용 GUI 편집기 (루트 1개, 파일 선택기로 아무 매뉴얼이나 편집)
 ├─ CLAUDE.md             이 파일 (허브 공통 규칙)
 ├─ .claude/commands/     /manual-update 등 명령
-├─ tools/                공용 편집 엔진 3종(단일 소스): editor-find/media/review.js
+├─ tools/                공용 편집 엔진 4종(단일 소스): editor-find/media/review/format.js
 ├─ .github/workflows/    Pages 자동 배포
 ├─ admin/                TBM 관리자 매뉴얼  ↔ 코드 레포: tbmadmin (JHcapybara/tbmadmin)
 ├─ app/                  TBM 앱 매뉴얼  ↔ 코드 레포: safeticsTBM (JHcapybara/safeticsTBM)
 └─ sfd/                  SFD 매뉴얼 (준비 중)  ↔ 코드 레포: (SFD 레포)
 ```
 
-편집 도구는 **루트에 단일화**돼 있다: `editor.html`(GUI 편집기) + `tools/`(공용 엔진 3종).
+편집 도구는 **루트에 단일화**돼 있다: `editor.html`(GUI 편집기) + `tools/`(공용 엔진 4종 — 찾기/미디어/검수/서식(플로팅 바·행간·표·콜아웃·문단 우클릭)).
 각 매뉴얼 폴더는 콘텐츠 자체(`index.html` 원본, `img/`, `sync-state.json`, `tools/build.mjs`·`import.mjs`,
 `readme.txt`, `CLAUDE.md`, 빌드된 최종본 `*_vX.XX.html`)를 갖는다. index.html·editor.html·build는
 공용 엔진을 루트 `../tools/`(빌드는 인라인 주입)로 참조한다.

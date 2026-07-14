@@ -68,28 +68,7 @@
   body.loaded #frame { display: block; }
   body.loaded #empty { display: none; }
 
-  /* ---------- 서식 툴바 (편집 중일 때만 상단에 표시) ---------- */
-  #fmtbar {
-    display: none; align-items: center; gap: 6px; flex-shrink: 0;
-    background: #16213a; padding: 7px 14px; border-bottom: 1px solid #2a3a60;
-  }
-  #fmtbar.show { display: flex; }
-  #fmtbar .flabel { color: #8fa0c5; font-size: 12px; margin-right: 2px; }
-  #fmtbar select {
-    background: #223052; color: #fff; border: 1px solid #3a4a75; border-radius: 6px;
-    padding: 4px 6px; font-size: 12.5px; cursor: pointer; outline: none;
-  }
-  #fmtbar .fbtn {
-    background: #223052; color: #fff; border: 1px solid #3a4a75; border-radius: 6px;
-    min-width: 30px; height: 28px; font-size: 13px; cursor: pointer; padding: 0 7px;
-  }
-  #fmtbar .fbtn:hover { background: #2e3f68; }
-  #fmtbar .sep { width: 1px; height: 20px; background: #3a4a75; }
-  #fmtbar .swatch {
-    width: 19px; height: 19px; border-radius: 50%; cursor: pointer;
-    border: 2px solid rgba(255,255,255,.35); padding: 0;
-  }
-  #fmtbar .swatch:hover { border-color: #fff; transform: scale(1.15); }
+  /* 서식 UI는 문서 안 플로팅 바(tools/editor-format.js)가 담당 */
 
   /* ---------- PDF 페이지 전환 설정 모달 ---------- */
   #pbOverlay {
@@ -143,6 +122,7 @@
   <button id="saveBtn" class="primary" disabled>💾 저장 <small>(Ctrl+S)</small></button>
   <button id="replaceToggle" disabled>🔤 찾기·치환</button>
   <button id="mediaBtn" disabled>➕ 미디어</button>
+  <button id="fmtPdfBreak" disabled title="PDF 저장 시 어떤 항목부터 새 페이지로 시작할지 설정">📄 PDF 전환</button>
   <button id="backupBtn" disabled>⬇ 백업 내려받기</button>
   <span id="dirtyDot" title="저장하지 않은 변경 있음"></span>
   <span id="status">파일을 열어 주세요.</span>
@@ -182,48 +162,7 @@
   </div>
 </div>
 
-<div id="fmtbar">
-  <span class="flabel">✏️ 서식</span>
-  <select id="fmtBlock" title="문단 종류">
-    <option value="">문단 종류</option>
-    <option value="h4">제목</option>
-    <option value="p">본문</option>
-    <option value="note">주석 (작은 회색 글)</option>
-  </select>
-  <select id="fmtSize" title="글자 크기 (현재 크기가 표시됩니다)">
-    <option value="">크기</option>
-    <option value="12">12px</option>
-    <option value="13">13px</option>
-    <option value="14">14px</option>
-    <option value="15">15px</option>
-    <option value="16">16px</option>
-    <option value="17">17px</option>
-    <option value="18">18px</option>
-    <option value="19">19px</option>
-    <option value="20">20px</option>
-    <option value="22">22px</option>
-    <option value="24">24px</option>
-    <option value="28">28px</option>
-  </select>
-  <span class="sep"></span>
-  <button class="fbtn" id="fmtBold" title="굵게"><b>B</b></button>
-  <span class="sep"></span>
-  <button class="swatch" data-color="#1f2733" style="background:#1f2733" title="기본색"></button>
-  <button class="swatch" data-color="#1f5eff" style="background:#1f5eff" title="파랑"></button>
-  <button class="swatch" data-color="#cf1322" style="background:#cf1322" title="빨강"></button>
-  <button class="swatch" data-color="#d46b08" style="background:#d46b08" title="주황"></button>
-  <button class="swatch" data-color="#389e0d" style="background:#389e0d" title="초록"></button>
-  <button class="swatch" data-color="#8a94a3" style="background:#8a94a3" title="회색"></button>
-  <span class="sep"></span>
-  <button class="fbtn" id="fmtClear" title="서식 지우기 (색·크기·굵기 제거)">지우기</button>
-  <span class="sep"></span>
-  <span class="flabel">정렬</span>
-  <button class="fbtn" id="fmtAlignL" title="왼쪽 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M2 7h6M2 10.5h9"/></svg></button>
-  <button class="fbtn" id="fmtAlignC" title="가운데 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M4 7h6M3 10.5h8"/></svg></button>
-  <button class="fbtn" id="fmtAlignR" title="오른쪽 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M6 7h6M3 10.5h9"/></svg></button>
-  <span class="sep"></span>
-  <button class="fbtn" id="fmtPdfBreak" title="PDF 저장 시 어떤 항목부터 새 페이지로 시작할지 설정">📄 PDF 전환</button>
-</div>
+<!-- 서식은 이제 플로팅 바(tools/editor-format.js)가 담당 — 문서 안에서 커서/드래그 위치 근처에 뜸 -->
 
 <iframe id="frame"></iframe>
 
@@ -247,6 +186,7 @@
 
 <script src="tools/editor-find.js"></script>
 <script src="tools/editor-media.js"></script>
+<script src="tools/editor-format.js"></script>
 <script>
 (function () {
   var frame = document.getElementById('frame');
@@ -267,6 +207,7 @@
   var dirty = false;
   var ef = null;              // 공용 찾기/치환 엔진 (EditorFind), 파일 로드 시 생성
   var media = null;           // 공용 미디어 엔진 (EditorMedia), 파일 로드 시 생성
+  var fmt = null;             // 공용 서식 엔진 (EditorFormat, 플로팅 바), 파일 로드 시 생성
   var mediaBtn = document.getElementById('mediaBtn');
 
   var hasFS = ('showOpenFilePicker' in window) && location.search.indexOf('fallback') === -1;
@@ -369,13 +310,19 @@
     mediaBtn.disabled = false;
     doc.addEventListener('input', function () { setDirty(true); });
     doc.addEventListener('keydown', keyHandler);
-    doc.addEventListener('selectionchange', updateFmtbar);
-    frame.contentWindow.addEventListener('scroll', updateFmtbar, { passive: true });
+    fmt = window.EditorFormat ? window.EditorFormat.create({
+      doc: doc, win: frame.contentWindow,
+      onChange: function () { setDirty(true); },
+      onMedia: function () { if (media) media.openInsert(); },
+      onToast: toast
+    }) : null;
+    if (fmt) fmt.enable();
 
     document.body.classList.add('loaded');
     saveBtn.disabled = false;
     replaceToggle.disabled = false;
     backupBtn.disabled = false;
+    document.getElementById('fmtPdfBreak').disabled = false;
     setDirty(false);
     setStatus(fileName + ' 편집 중 — 문장을 클릭해 바로 고치세요.');
     toast('불러왔습니다. 문장을 클릭해 수정하세요. 실수하면 Ctrl+Z');
@@ -499,124 +446,7 @@
     toast('원본 백업본을 내려받았습니다.');
   });
 
-  // ---------- 서식 툴바 ----------
-  var fmtbar = document.getElementById('fmtbar');
-  var savedRange = null;
-
-  function hideFmt() { fmtbar.classList.remove('show'); }
-
-  function updateFmtbar() {
-    var doc = frame.contentDocument;
-    if (!doc || !document.body.classList.contains('loaded')) return;
-    var sel = doc.getSelection();
-    if (!sel || !sel.anchorNode || !doc.body.contains(sel.anchorNode)) { hideFmt(); return; }
-    if (!sel.rangeCount) { hideFmt(); return; }
-    savedRange = sel.getRangeAt(0).cloneRange();
-
-    // 현재 커서 위치의 글자 크기를 크기 셀렉트에 표시
-    var curEl = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
-    if (curEl) {
-      var px = Math.round(parseFloat(frame.contentWindow.getComputedStyle(curEl).fontSize));
-      var szSel = document.getElementById('fmtSize');
-      var has = Array.prototype.some.call(szSel.options, function (o) { return o.value === String(px); });
-      if (has) {
-        szSel.value = String(px);
-        szSel.options[0].textContent = '크기';
-      } else {
-        szSel.options[0].textContent = px + 'px';
-        szSel.value = '';
-      }
-    }
-    fmtbar.classList.add('show');
-  }
-
-  // 버튼 클릭이 iframe 선택을 날리지 않도록 (select는 포커스 필요해서 제외)
-  fmtbar.addEventListener('mousedown', function (e) {
-    if (e.target.closest('button')) e.preventDefault();
-  });
-  // 편집기 상단 메뉴 등 다른 곳 클릭 시 툴바 숨김
-  document.addEventListener('mousedown', function (e) {
-    if (!e.target.closest('#fmtbar') && !e.target.closest('#frame')) hideFmt();
-  });
-
-  function exec(cmd, val) {
-    var doc = frame.contentDocument;
-    var sel = doc.getSelection();
-    if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
-    try { doc.execCommand('styleWithCSS', false, true); } catch (e) {}
-    doc.execCommand(cmd, false, val || null);
-    setDirty(true);
-    if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
-    updateFmtbar();
-  }
-
-  function currentBlock() {
-    var sel = frame.contentDocument.getSelection();
-    var n = sel && sel.anchorNode;
-    if (!n) return null;
-    var el = n.nodeType === 1 ? n : n.parentElement;
-    return el ? el.closest('p,h1,h2,h3,h4,h5,h6,li,dt,dd,figcaption') : null;
-  }
-
-  document.getElementById('fmtBlock').addEventListener('change', function () {
-    var v = this.value;
-    this.value = '';
-    if (!v) return;
-    if (v === 'note') {
-      exec('formatBlock', 'p');
-      var el = currentBlock();
-      if (el) { el.style.color = '#8a94a3'; el.style.fontSize = '13px'; setDirty(true); }
-      toast('주석 스타일을 적용했습니다.');
-    } else {
-      var el2 = currentBlock();
-      if (el2) { el2.style.color = ''; el2.style.fontSize = ''; }
-      exec('formatBlock', v);
-      toast(v === 'h4' ? '제목으로 바꿨습니다.' : '본문으로 바꿨습니다.');
-    }
-  });
-
-  function applyFontSizePx(px) {
-    var doc = frame.contentDocument;
-    var sel = doc.getSelection();
-    if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
-    if (!sel.rangeCount) return;
-    if (sel.isCollapsed) {
-      // 선택 영역 없이 커서만 있으면 현재 문단 전체에 적용
-      var blk = currentBlock();
-      if (blk) { blk.style.fontSize = px + 'px'; setDirty(true); }
-    } else {
-      // execCommand fontSize(1~7) 뒤 생성된 태그를 px 단위로 치환
-      try { doc.execCommand('styleWithCSS', false, true); } catch (e) {}
-      doc.execCommand('fontSize', false, '7');
-      Array.prototype.forEach.call(doc.querySelectorAll('font[size="7"]'), function (f) {
-        var s = doc.createElement('span');
-        s.style.fontSize = px + 'px';
-        while (f.firstChild) s.appendChild(f.firstChild);
-        f.parentNode.replaceChild(s, f);
-      });
-      Array.prototype.forEach.call(doc.querySelectorAll('span[style*="xxx-large"]'), function (s) {
-        s.style.fontSize = px + 'px';
-      });
-      setDirty(true);
-      if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
-    }
-    updateFmtbar();
-  }
-
-  document.getElementById('fmtSize').addEventListener('change', function () {
-    var v = this.value;
-    if (!v) return;
-    applyFontSizePx(parseInt(v, 10));
-  });
-
-  document.getElementById('fmtBold').addEventListener('click', function () { exec('bold'); });
-  document.getElementById('fmtClear').addEventListener('click', function () { exec('removeFormat'); });
-  document.getElementById('fmtAlignL').addEventListener('click', function () { exec('justifyLeft'); });
-  document.getElementById('fmtAlignC').addEventListener('click', function () { exec('justifyCenter'); });
-  document.getElementById('fmtAlignR').addEventListener('click', function () { exec('justifyRight'); });
-  Array.prototype.forEach.call(fmtbar.querySelectorAll('.swatch'), function (sw) {
-    sw.addEventListener('click', function () { exec('foreColor', sw.dataset.color); });
-  });
+  // ---------- 서식: 플로팅 바 (tools/editor-format.js, loadText에서 초기화) ----------
 
   // ---------- PDF 페이지 전환 설정 모달 ----------
   var pbOverlay = document.getElementById('pbOverlay');

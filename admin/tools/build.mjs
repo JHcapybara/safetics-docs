@@ -72,6 +72,7 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
   var held = {}, clicks = 0, lastClick = 0;
   var ef = null;   // 공용 찾기/치환 엔진 (EditorFind) — 편집 진입 시 생성
   var media = null; // 공용 미디어 엔진 (EditorMedia) — 편집 진입 시 생성
+  var fmt = null;   // 공용 서식 엔진 (EditorFormat, 플로팅 바) — 편집 진입 시 생성
 
   var COLORS = ['#1f2733', '#1f5eff', '#cf1322', '#d46b08', '#389e0d', '#8a94a3'];
   var SIZES = [12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 28];
@@ -174,24 +175,10 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
     // designMode 문서 안에서 툴바가 "편집 대상"이 되지 않도록 비편집 섬으로 지정
     // (이게 없으면 버튼 클릭이 커서 이동으로 먹혀서 동작하지 않음)
     bar.setAttribute('contenteditable', 'false');
-    var sizeOpts = '<option value="">크기</option>';
-    for (var i = 0; i < SIZES.length; i++) sizeOpts += '<option value="' + SIZES[i] + '">' + SIZES[i] + 'px</option>';
-    var swatches = '';
-    for (var j = 0; j < COLORS.length; j++) swatches += '<button type="button" class="hsw" data-color="' + COLORS[j] + '" style="background:' + COLORS[j] + '"></button>';
+    // 서식(문단·크기·굵게·색·정렬·행간·표·콜아웃)은 플로팅 바(EditorFormat)가 담당.
+    // 이 고정 바에는 찾기·치환 / 미디어 / 저장 / 종료만 남긴다.
     bar.innerHTML =
-      '<span class="hlab">✏️ 숨김 편집</span>' +
-      '<select id="__he_block"><option value="">문단 종류</option><option value="h4">제목</option><option value="p">본문</option><option value="note">주석 (작은 회색 글)</option></select>' +
-      '<select id="__he_size">' + sizeOpts + '</select>' +
-      '<span class="hsep"></span>' +
-      '<button type="button" id="__he_bold"><b>B</b></button>' +
-      '<span class="hsep"></span>' + swatches +
-      '<span class="hsep"></span>' +
-      '<button type="button" id="__he_clear">지우기</button>' +
-      '<span class="hsep"></span>' +
-      '<span class="hlab">정렬</span>' +
-      '<button type="button" id="__he_alL" title="왼쪽 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M2 7h6M2 10.5h9"/></svg></button>' +
-      '<button type="button" id="__he_alC" title="가운데 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M4 7h6M3 10.5h8"/></svg></button>' +
-      '<button type="button" id="__he_alR" title="오른쪽 정렬"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3.5h10M6 7h6M3 10.5h9"/></svg></button>' +
+      '<span class="hlab">✏️ 숨김 편집 — 서식은 본문에서 텍스트를 클릭/드래그하면 뜨는 플로팅 메뉴로</span>' +
       '<span class="hsep"></span>' +
       '<input id="__he_find" placeholder="찾을 용어">' +
       '<button type="button" id="__he_doFind" title="찾기 (Enter)">🔍</button>' +
@@ -212,32 +199,6 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
 
     bar.addEventListener('mousedown', function (e) {
       if (e.target.closest('button')) e.preventDefault();
-    });
-    document.getElementById('__he_bold').addEventListener('click', function () { exec('bold'); });
-    document.getElementById('__he_clear').addEventListener('click', function () { exec('removeFormat'); });
-    document.getElementById('__he_alL').addEventListener('click', function () { exec('justifyLeft'); });
-    document.getElementById('__he_alC').addEventListener('click', function () { exec('justifyCenter'); });
-    document.getElementById('__he_alR').addEventListener('click', function () { exec('justifyRight'); });
-    Array.prototype.forEach.call(bar.querySelectorAll('.hsw'), function (sw) {
-      sw.addEventListener('click', function () { exec('foreColor', sw.getAttribute('data-color')); });
-    });
-    document.getElementById('__he_block').addEventListener('change', function () {
-      var v = this.value; this.value = '';
-      if (!v) return;
-      if (v === 'note') {
-        exec('formatBlock', 'p');
-        var el = currentBlock();
-        if (el) { el.style.color = '#8a94a3'; el.style.fontSize = '13px'; setDirty(true); }
-      } else {
-        var el2 = currentBlock();
-        if (el2) { el2.style.color = ''; el2.style.fontSize = ''; }
-        exec('formatBlock', v);
-      }
-    });
-    document.getElementById('__he_size').addEventListener('change', function () {
-      var v = this.value;
-      if (!v) return;
-      applyFontSizePx(parseInt(v, 10));
     });
     var fInput = document.getElementById('__he_find');
     var rInput = document.getElementById('__he_repl');
@@ -292,8 +253,16 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
     ef = window.EditorFind ? window.EditorFind.create({ doc: document, win: window }) : null;
     media = window.EditorMedia ? window.EditorMedia.create({ doc: document, win: window, onChange: function () { setDirty(true); }, onToast: toast }) : null;
     if (media) media.enable();
+    fmt = window.EditorFormat ? window.EditorFormat.create({
+      doc: document, win: window,
+      onChange: function () { setDirty(true); },
+      onMedia: function () { if (media) media.openInsert(); },
+      onToast: toast,
+      linkBase: location.href.split('#')[0]
+    }) : null;
+    if (fmt) fmt.enable();
     document.body.classList.add('__he-editing');
-    toast('편집 모드 — 문장을 클릭해 수정, 실수는 Ctrl+Z, 저장은 Ctrl+S');
+    toast('편집 모드 — 텍스트를 클릭/드래그하면 서식 메뉴가 뜹니다. 문단 우클릭=이동·링크, 저장은 Ctrl+S');
   }
 
   function exitEdit() {
@@ -308,67 +277,11 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
     if (st) st.remove();
     if (ef) { ef.clear(); ef = null; }
     if (media) { media.disable(); media = null; }
+    if (fmt) { fmt.disable(); fmt = null; }
     toast('보기 모드로 돌아왔습니다.');
   }
 
-  // ---------- 서식 명령 ----------
-  function keepRange() {
-    var sel = document.getSelection();
-    if (sel && sel.rangeCount && document.body.contains(sel.anchorNode) && !(sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement).closest('#__he_bar')) {
-      savedRange = sel.getRangeAt(0).cloneRange();
-      refreshSize(sel);
-    }
-  }
-  function refreshSize(sel) {
-    var el = sel.anchorNode ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement) : null;
-    var szSel = document.getElementById('__he_size');
-    if (!el || !szSel) return;
-    var px = Math.round(parseFloat(getComputedStyle(el).fontSize));
-    var has = false;
-    for (var i = 0; i < szSel.options.length; i++) if (szSel.options[i].value === String(px)) has = true;
-    if (has) { szSel.value = String(px); szSel.options[0].textContent = '크기'; }
-    else { szSel.options[0].textContent = px + 'px'; szSel.value = ''; }
-  }
-  document.addEventListener('selectionchange', function () { if (editing) keepRange(); });
-
-  function exec(cmd, val) {
-    var sel = document.getSelection();
-    if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
-    try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
-    document.execCommand(cmd, false, val || null);
-    setDirty(true);
-    if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
-  }
-  function currentBlock() {
-    var sel = document.getSelection();
-    var n = sel && sel.anchorNode;
-    if (!n) return null;
-    var el = n.nodeType === 1 ? n : n.parentElement;
-    return el ? el.closest('p,h1,h2,h3,h4,h5,h6,li,dt,dd,figcaption') : null;
-  }
-  function applyFontSizePx(px) {
-    var sel = document.getSelection();
-    if (savedRange) { sel.removeAllRanges(); sel.addRange(savedRange); }
-    if (!sel.rangeCount) return;
-    if (sel.isCollapsed) {
-      var blk = currentBlock();
-      if (blk) { blk.style.fontSize = px + 'px'; setDirty(true); }
-    } else {
-      try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
-      document.execCommand('fontSize', false, '7');
-      Array.prototype.forEach.call(document.querySelectorAll('font[size="7"]'), function (f) {
-        var s = document.createElement('span');
-        s.style.fontSize = px + 'px';
-        while (f.firstChild) s.appendChild(f.firstChild);
-        f.parentNode.replaceChild(s, f);
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('span[style*="xxx-large"]'), function (s) {
-        s.style.fontSize = px + 'px';
-      });
-      setDirty(true);
-      if (sel.rangeCount) savedRange = sel.getRangeAt(0).cloneRange();
-    }
-  }
+  // ---------- 서식은 EditorFormat(플로팅 바)이 담당 ----------
   // ---------- 버전 / 직렬화 / 저장 ----------
   function readVersion() {
     var span = document.getElementById('docVersion');
@@ -452,9 +365,11 @@ const HIDDEN_EDITOR = String.raw`<script id="__he_boot">
 const TOOLS_DIR = path.join(MANUAL_DIR, '..', 'tools');
 const FIND_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-find.js'), 'utf8');
 const MEDIA_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-media.js'), 'utf8');
+const FORMAT_ENGINE = fs.readFileSync(path.join(TOOLS_DIR, 'editor-format.js'), 'utf8');
 result = result.replace('</body>',
   '<script id="__ef_engine">\n' + FIND_ENGINE + '\n</' + 'script>\n' +
   '<script id="__em_engine">\n' + MEDIA_ENGINE + '\n</' + 'script>\n' +
+  '<script id="__fmt_engine">\n' + FORMAT_ENGINE + '\n</' + 'script>\n' +
   HIDDEN_EDITOR + '\n</body>');
 
 // index.html의 검수 엔진 외부 참조(<script src="../tools/editor-review.js">)는 최종본에선 파일이 없으므로

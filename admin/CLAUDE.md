@@ -13,7 +13,7 @@
 | (저장소 루트 `admin-latest.html`) | 빌드가 자동 생성하는 **고정 별칭** — 항상 최신 최종본으로 리다이렉트. 루트 index.html '최종본 보기'가 이걸 가리킴. 이 폴더가 아니라 **저장소 루트**에 생성됨. **직접 수정 금지** |
 | `img/` | 스크린샷. `index.html`이 상대 경로로 참조 |
 | (저장소 루트 `editor.html`) | 비개발자용 GUI 편집기. **폴더별이 아니라 루트에 하나**만 있고, 파일 선택기로 admin/app 아무 index.html이나 연다 |
-| (저장소 루트 `tools/editor-find.js`·`editor-media.js`·`editor-review.js`) | **공용 엔진 3종(단일 소스, 루트 tools/)**. 찾기/치환, 미디어(이미지·유튜브·mp4), 검수. editor.html·index.html은 `../tools/`로 로드, 최종본은 build가 인라인 주입 |
+| (저장소 루트 `tools/editor-*.js`) | **공용 엔진 4종(단일 소스, 루트 tools/)** — find(찾기/치환)·media(이미지·유튜브·mp4)·review(검수)·format(플로팅 서식 바: 문단·크기·굵게·색·정렬·행간·표·콜아웃·문단 우클릭 이동/링크). editor.html·index.html은 `../tools/`로 로드, 최종본은 build가 인라인 주입 |
 | `sync-state.json` | 참조 코드 레포별 마지막 반영 커밋(lastSha). `/manual-update`가 이 이후 diff만 분석·선반영, 검수 완료 후 갱신 |
 | `tools/build.mjs` | 최종본 빌드 스크립트 |
 | `tools/import.mjs` | 수정된 최종본을 index.html로 역반영하는 스크립트 |
